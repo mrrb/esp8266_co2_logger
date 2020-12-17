@@ -1,0 +1,12 @@
+{
+    "C_Cpp.default.includePath": [
+        "/home/mra/esp8266/esp-open-sdk/xtensa-lx106-elf/xtensa-lx106-elf/sysroot/usr/include/",
+        // "${env:ESP8266_SDK_ROOT}/xtensa-lx106-elf/xtensa-lx106-elf/sysroot/usr/include/",
+        "./include",
+        "./driver",
+        "./libs",
+    ],
+    "files.associations": {
+        "random": "cpp"
+    }
+}
