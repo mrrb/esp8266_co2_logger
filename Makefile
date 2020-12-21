@@ -44,7 +44,7 @@ $(OBJ)/%.o: %.c
 $(OBJS): $(SRCS)
 
 flash: $(BUILD)/$(PR_NAME)-0x00000.bin $(BUILD)/$(PR_NAME)-0x10000.bin
-	esptool.py write_flash 0 $(word 1,$^) 0x10000 $(word 2,$^)
+	esptool.py -a soft_reset write_flash 0 $(word 1,$^) 0x10000 $(word 2,$^)
 
 clean:
 	rm -fr ./build/
