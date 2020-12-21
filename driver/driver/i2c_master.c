@@ -202,12 +202,19 @@ uint8 ICACHE_FLASH_ATTR
 i2c_master_getAck(void)
 {
     uint8 retVal;
+#ifdef I2C_MASTER_CLOCK_STRETCH
+    uint16 cs_limit = 0;
+#endif
+
     i2c_master_setDC(m_nLastSDA, 0);
     i2c_master_wait(5);
     i2c_master_setDC(1, 0);
     i2c_master_wait(5);
     i2c_master_setDC(1, 1);
     i2c_master_wait(5);
+#ifdef I2C_MASTER_CLOCK_STRETCH
+    while (GPIO_INPUT_GET(GPIO_ID_PIN(I2C_MASTER_SCL_GPIO)) == 0 && (cs_limit++) < I2C_MASTER_MAX_CLOCK_STRETCH) {};
+#endif
 
     retVal = i2c_master_getDC();
     i2c_master_wait(5);
@@ -307,9 +314,6 @@ i2c_master_writeByte(uint8 wrdata)
 {
     uint8 dat;
     sint8 i;
-    uint16 cs_limit = 0; 
-
-    os_printf("!%d\n", cs_limit);
 
     i2c_master_wait(5);
 
