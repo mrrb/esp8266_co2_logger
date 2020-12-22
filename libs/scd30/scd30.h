@@ -51,16 +51,16 @@ uint8_t ICACHE_FLASH_ATTR scd30_stop_continuous_measurement();
 uint8_t ICACHE_FLASH_ATTR scd30_set_measurement_interval(uint16_t interval);
 uint8_t ICACHE_FLASH_ATTR scd30_get_measurement_interval(uint16_t* interval);
 uint8_t ICACHE_FLASH_ATTR scd30_check_data_ready(uint8_t* data_ready);
-uint8_t ICACHE_FLASH_ATTR scd30_read_measurement(real32_t* co2, real32_t* t, real32_t* rh);
+uint8_t ICACHE_FLASH_ATTR scd30_read_measurement(uint32_t* co2, uint32_t* t, uint32_t* rh);
 uint8_t ICACHE_FLASH_ATTR scd30_toggle_automatic_self_calibration(uint8_t status);
 uint8_t ICACHE_FLASH_ATTR scd30_set_forced_recalibration_value(uint16_t concentration);
 uint8_t ICACHE_FLASH_ATTR scd30_get_forced_recalibration_value(uint16_t* concentration);
-uint8_t ICACHE_FLASH_ATTR scd30_set_temperature_offset(uint16_t temperature);
-uint8_t ICACHE_FLASH_ATTR scd30_get_temperature_offset(uint16_t* temperature);
+uint8_t ICACHE_FLASH_ATTR scd30_set_temperature_offset(uint16_t offset);
+uint8_t ICACHE_FLASH_ATTR scd30_get_temperature_offset(uint16_t* offset);
 uint8_t ICACHE_FLASH_ATTR scd30_set_altitude_compensation_value(uint16_t altitude);
 uint8_t ICACHE_FLASH_ATTR scd30_get_altitude_compensation_value(uint16_t* altitude);
-uint8_t ICACHE_FLASH_ATTR scd30_get_firmware_version(uint16_t* version);
-uint8_t ICACHE_FLASH_ATTR scd30_soft_reset(uint16_t* version);
+uint8_t ICACHE_FLASH_ATTR scd30_get_firmware_version(uint8_t* version_major, uint8_t* version_minor);
+uint8_t ICACHE_FLASH_ATTR scd30_soft_reset();
 
 #ifdef __cplusplus
 }
