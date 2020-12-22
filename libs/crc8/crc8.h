@@ -9,7 +9,7 @@
 #define APP_CRC8_CRC8_H_
 
 #include <stddef.h>
-#include <stdint.h>
+#include <c_types.h>
 #include <stdbool.h>
 
 

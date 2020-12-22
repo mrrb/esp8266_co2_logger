@@ -5,7 +5,7 @@
 #include <stdlib.h>
 
 #include "f2c.h"
-#include "stdint.h"
+#include "c_types.h"
 
 
 char*

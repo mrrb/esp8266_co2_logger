@@ -7,7 +7,6 @@
 #ifndef ESPMISSING_H
 #define ESPMISSING_H
 
-#include <stdint.h>
 #include <c_types.h>
 
 #include <eagle_soc.h>

@@ -10,7 +10,7 @@
 #ifndef SIMPLE_I2C_H
 #define SIMPLE_I2C_H
 
-#include <stdint.h>
+#include <c_types.h>
 #include "driver/i2c_master.h"
 
 #ifdef __cplusplus
