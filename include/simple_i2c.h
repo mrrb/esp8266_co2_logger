@@ -95,11 +95,11 @@ typedef enum i2c_start_op {
  * \hideinitializer
  */
 #define I2C_WRITE_BYTES(p_data, data_len, p_result) do { \
-    if (data == NULL || data_len < 1) {                  \
+    if (p_data == NULL || data_len < 1) {                \
         *p_result = 0;                                   \
     } else {                                             \
         for (size_t i = 0; i < data_len; ++i) {          \
-            *p_result = I2C_WRITE_BYTE(*(data++));       \
+            I2C_WRITE_BYTE(*(p_data+i), p_result);       \
             if (!(*p_result)) {                          \
                 break;                                   \
             }                                            \
@@ -114,7 +114,7 @@ typedef enum i2c_start_op {
  * \hideinitializer
  */
 #define I2C_READ_BYTE(p_data, p_result) do { \
-    if (data == NULL) {                      \
+    if (p_data == NULL) {                    \
         *p_result = 0;                       \
     } else {                                 \
         *p_data = i2c_master_readByte();     \
@@ -131,7 +131,7 @@ typedef enum i2c_start_op {
  * \hideinitializer
  */
 #define I2C_READ_BYTES(p_data, data_len, p_result) do { \
-    if (data == NULL || data_len < 1) {                 \
+    if (p_data == NULL || data_len < 1) {               \
         *p_result = 0;                                  \
     } else {                                            \
         for (size_t i = 0; i < data_len - 1; ++i) {     \
