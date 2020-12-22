@@ -329,9 +329,9 @@ scd30_get_firmware_version(uint8_t* version_major, uint8_t* version_minor) {
         return op_result;
     }
 
-    *version_major = data[0] << 8;
+    *version_major = data[0];
     *version_minor = data[1];
-               
+
     return 1;
 }
 
