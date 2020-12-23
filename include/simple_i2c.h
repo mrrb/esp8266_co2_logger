@@ -34,36 +34,36 @@ typedef enum i2c_start_op {
 } while(0)
 
 /**
- * \brief           Begin a I2C transaction
+ * \brief           Start a I2C transaction
  * \param[in]       addr: I2C slave address
  * \param[in]       op: i2c_start_op_t. I2C operation read/write
  * \param[out]      p_result: Result of the operation
  * \hideinitializer
  */
-#define I2C_BEGIN(addr, op, p_result) do { \
+#define I2C_START(addr, op, p_result) do { \
     i2c_master_start();                    \
     i2c_master_writeByte((addr<<1) + op);  \
     *p_result = i2c_master_checkAck();     \
 } while(0)
 
 /**
- * \brief           Begin a READ I2C transaction
+ * \brief           Start a READ I2C transaction
  * \param[in]       addr: I2C slave address
  * \param[out]      p_result: Result of the operation
  * \hideinitializer
  */
-#define I2C_BEGIN_READ(addr, p_result) do { \
-    I2C_BEGIN(addr, I2C_OP_READ, p_result); \
+#define I2C_START_READ(addr, p_result) do { \
+    I2C_START(addr, I2C_OP_READ, p_result); \
 } while(0)
 
 /**
- * \brief           Begin a WRITE I2C transaction
+ * \brief           Start a WRITE I2C transaction
  * \param[in]       addr: I2C slave address
  * \param[out]      p_result: Result of the operation
  * \hideinitializer
  */
-#define I2C_BEGIN_WRITE(addr, p_result) do { \
-    I2C_BEGIN(addr, I2C_OP_WRITE, p_result); \
+#define I2C_START_WRITE(addr, p_result) do { \
+    I2C_START(addr, I2C_OP_WRITE, p_result); \
 } while(0)
 
 /**
@@ -155,20 +155,20 @@ typedef enum i2c_start_op {
 // }
 
 // inline uint8_t
-// I2C_BEGIN(uint8_t addr, i2c_start_op_t op) {
+// I2C_START(uint8_t addr, i2c_start_op_t op) {
 //     i2c_master_start();
 //     i2c_master_writeByte((addr<<1) + op);
 //     return i2c_master_checkAck();
 // }
 
 // inline uint8_t
-// I2C_BEGIN_READ(uint8_t addr) {
-//     return I2C_BEGIN(addr, I2C_OP_READ);
+// I2C_START_READ(uint8_t addr) {
+//     return I2C_START(addr, I2C_OP_READ);
 // }
 
 // inline uint8_t
-// I2C_BEGIN_WRITE(uint8_t addr) {
-//     return I2C_BEGIN(addr, I2C_OP_WRITE);
+// I2C_START_WRITE(uint8_t addr) {
+//     return I2C_START(addr, I2C_OP_WRITE);
 // }
 
 // inline uint8_t
