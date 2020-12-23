@@ -9,10 +9,10 @@
  * 
  */
 
+#include <c_types.h>
 #include "uc_init.h"
 #include "f2c/f2c.h"
-#include "simple_i2c.h"
-#include "crc8/crc8.h"
+#include "scd30/scd30.h"
 
 
 static volatile os_timer_t timer1;
@@ -26,100 +26,38 @@ blink(void *arg) {
 
 void ICACHE_FLASH_ATTR
 test_read(void *arg) {
-    uint8_t op_result;
-    uint8_t data[18];
-    uint32_t temp_CO2, temp_T, temp_RH;
-    real32_t CO2, T, RH;
-    char* txt_buff = os_malloc(sizeof(char)*50);
+    uint8_t status = 0;
+    uint8_t rdy = 0;
+    uint8_t fw_major, fw_minor;
+    uint32_t co2, t, rh;
+
+    char* txt_buff = os_malloc(sizeof(char)*F2C_CHAR_BUFF_SIZE);
     char* txt_f2c;
 
-    uint8_t crc = 0xFF;
+    for (size_t i = 0; i < F2C_CHAR_BUFF_SIZE; ++i) {
+        txt_buff[i] = 0;
+    }
 
-    do {
-        I2C_BEGIN_WRITE(0x61, &op_result);
-        if (!op_result) {
-            os_printf("FW: I2C error @WRITE0\n", op_result);
-            break;
-        }
-        I2C_WRITE_BYTE(0xD1, &op_result);
-        if (!op_result) {
-            os_printf("FW: I2C error @WRITE1\n", op_result);
-            break;
-        }
-        I2C_WRITE_BYTE(0x00, &op_result);
-        if (!op_result) {
-            os_printf("FW: I2C error @WRITE2\n", op_result);
-            break;
-        }
-        I2C_STOP(&op_result);
-        if (!op_result) {
-            os_printf("FW: I2C error @WRITE3\n", op_result);
-            break;
-        }
-        os_delay_us(100);
+    status = scd30_get_firmware_version(&fw_major, &fw_minor);
+    os_printf("FW:  %d.%d (%d)\n", fw_major, fw_minor, status);
 
-        I2C_BEGIN_READ(0x61, &op_result);
-        if (!op_result) {
-            os_printf("FW: I2C error @READ0\n", op_result);
-            break;
-        }
-        I2C_READ_BYTES(data, 3, &op_result);
-        if (!op_result) {
-            os_printf("FW: I2C error @READ1\n", op_result);
-            break;
-        }
-    } while(0);
-    I2C_STOP(&op_result);
+    status = scd30_check_data_ready(&rdy);
+    if (rdy) {
+        os_printf("Measure ready.\n", rdy, status);
+        status = scd30_read_measurement(&co2, &t, &rh);
 
-    crc8_fast(data, 2, &crc);
-    os_printf("FW: op_result=%d\n", op_result);
-    os_printf("FW: %x %x (%x) [%d.%d]\n", data[0], data[1], data[2], data[0], data[1]);
-    os_printf("FW: CRC8-I2C=%x CRC8-CALC=%x. Result: %s\n", data[2], crc, (data[2] == crc) ? "\u2713" : "\u2A2F");
+        txt_f2c = f2c(*(real32_t*) &co2, txt_buff);
+        os_printf("CO2: %s (%d)\n", txt_f2c, status);
 
+        txt_f2c = f2c(*(real32_t*) &t, txt_buff);
+        os_printf("T:   %s (%d)\n", txt_f2c, status);
 
-    // I2C_BEGIN_WRITE(0x61, &op_result);
-    // I2C_WRITE_BYTE(0x03, &op_result);
-    // I2C_WRITE_BYTE(0x00, &op_result);
-    // I2C_STOP(&op_result);
-    // os_delay_us(100);
+        txt_f2c = f2c(*(real32_t*) &rh, txt_buff);
+        os_printf("RH:  %s (%d)\n\n", txt_f2c, status);
+    } else {
+        os_printf("Measure NOT ready.\n\n", rdy, status);
+    }
 
-    // I2C_BEGIN_READ(0x61, &op_result);
-    // I2C_READ_BYTES(data, 18, &op_result);
-    // I2C_STOP(&op_result);
-
-    // temp_CO2 = data[0] << 24 |
-    //            data[1] << 16 |
-    //            data[3] << 8  |
-    //            data[4];
-
-    // temp_T = data[6] << 24 |
-    //          data[7] << 16 |
-    //          data[9] << 8  |
-    //          data[10];
-
-    // temp_RH = data[12] << 24 |
-    //           data[13] << 16 |
-    //           data[15] << 8  |
-    //           data[16];
-
-    // CO2 = (real32_t)temp_CO2;
-    // T = (real32_t)temp_T;
-    // RH = (real32_t)temp_RH;
-
-    // os_printf("RAW CO2: %2x %2x (%2x) %2x %2x (%2x)\n", data[0],  data[1],  data[2],  data[3],  data[4],  data[5]);
-    // os_printf("RAW T:   %2x %2x (%2x) %2x %2x (%2x)\n", data[6],  data[7],  data[8],  data[9],  data[10], data[11]);
-    // os_printf("RAW RH:  %2x %2x (%2x) %2x %2x (%2x)\n", data[12], data[13], data[14], data[15], data[16], data[17]);
-
-
-    // // TODO - Fix this mess
-    // txt_f2c = nf2c(CO2, txt_buff, 50);
-    // os_printf("CO2: %s ppm\n", txt_f2c);
- 
-    // txt_f2c = nf2c(T, txt_buff, 50);
-    // os_printf("T:   %s ºC\n", txt_f2c);
-
-    // txt_f2c = nf2c(RH, txt_buff, 50);
-    // os_printf("RH:  %s %\n", txt_f2c);
 
     os_free(txt_buff);
 }
