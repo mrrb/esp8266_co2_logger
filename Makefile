@@ -6,6 +6,8 @@ INC    := ./include
 LIBS   := ./libs
 DRIVER := ./driver
 
+LIBRARY_PATH += "$(shell pwd)/libs/zmod4xxx"
+
 BUILD := ./build
 OBJ   := $(BUILD)/obj
 
@@ -23,8 +25,12 @@ OBJS := $(OBJS_DRIVER) $(OBJS_LIBS) $(OBJS_USER)
 #
 CC = xtensa-lx106-elf-gcc
 CFLAGS = -I$(SRC) -I$(INC) -I$(LIBS) -I$(DRIVER) -DICACHE_FLASH -mlongcalls -std=gnu11
-LDLIBS = -nostdlib -Wl,--start-group -lmain -lnet80211 -lwpa -llwip -lpp -lphy -lc -Wl,--end-group -lgcc
+
 LDFLAGS = -Teagle.app.v6.ld
+LDLIBS  = -nostdlib -Wl,--start-group
+LDLIBS += -lmain -lnet80211 -lwpa -llwip -lpp -lphy -lc -lgcc -lm
+LDLIBS += -L"$(shell pwd)/libs/zmod4xxx" -l_iaq_2nd_gen
+LDLIBS += -Wl,--end-group
 
 #
 all: $(BUILD)/$(PR_NAME)-0x00000.bin
@@ -38,7 +44,7 @@ $(BUILD)/$(PR_NAME): $(OBJS)
 	$(CC) $^ $(LDLIBS) $(LDFLAGS) -o $@
 
 $(OBJ)/%.o: %.c
-	mkdir -p $(dir $@)
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(OBJS): $(SRCS)
