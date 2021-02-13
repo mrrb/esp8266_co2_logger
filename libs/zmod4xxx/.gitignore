@@ -1,3 +1,10 @@
-*.h
+*iaq*.h
+*zmod*.h
+*renesas*.h
+!zmod4xxx_hal.h
+!zmod4xxx_config.h
+
+*zmod*.c
+!zmod4xxx_hal.c
+
 *.a
-*.c
