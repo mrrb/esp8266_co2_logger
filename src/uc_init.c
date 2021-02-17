@@ -6,6 +6,8 @@
  * \date 2020-12-13
  */
 
+#include <osapi.h>
+
 #include "uc_init.h"
 #include "fast_gpio.h"
 #include "simple_i2c.h"
@@ -42,8 +44,8 @@ uc_init_wifi() {
         }
 	}	
 
-    memcpy(&sta_cfg.ssid, ssid, SSID_LENGTH);
-    memcpy(&sta_cfg.password, ssid_pw, SSID_PW_LENGTH);
+    os_memcpy(&sta_cfg.ssid, ssid, SSID_LENGTH);
+    os_memcpy(&sta_cfg.password, ssid_pw, SSID_PW_LENGTH);
 
     if (!wifi_station_set_config(&sta_cfg)) {
         return STA_ERR;
