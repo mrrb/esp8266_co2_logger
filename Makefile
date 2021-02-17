@@ -24,18 +24,23 @@ OBJS := $(OBJS_DRIVER) $(OBJS_LIBS) $(OBJS_USER)
 
 #
 CC = xtensa-lx106-elf-gcc
-CFLAGS =  -I$(SRC) -I$(INC) -I$(LIBS) -I$(DRIVER) -DICACHE_FLASH -mlongcalls -std=gnu11 -Wall
+CFLAGS =  -I$(SRC) -I$(INC) -I$(LIBS) -I$(DRIVER) -DICACHE_FLASH -mlongcalls -std=gnu11
 CFLAGS += -Og -ggdb
 # CFLAGS += -Os -g
 
 LDFLAGS = -Teagle.app.v6.ld
 LDLIBS  = -nostdlib -Wl,--start-group
-LDLIBS += -lmain -lnet80211 -lwpa -llwip -lpp -lphy -lc -lgcc -lm
+LDLIBS += -lmain -lnet80211 -lwpa -llwip -lpp -lphy -lc -lgcc -lm -lssl
 LDLIBS += -L"$(shell pwd)/libs/zmod4xxx" -l_iaq_2nd_gen
 LDLIBS += -Wl,--end-group
 
 #
-all: $(BUILD)/$(PR_NAME)-0x00000.bin
+all: build
+
+info: build
+	xtensa-lx106-elf-size $(BUILD)/$(PR_NAME) -A
+
+build: $(BUILD)/$(PR_NAME)-0x00000.bin
 
 $(BUILD)/$(PR_NAME)-0x00000.bin: $(BUILD)/$(PR_NAME)
 	esptool.py elf2image $^
@@ -57,4 +62,4 @@ flash: $(BUILD)/$(PR_NAME)-0x00000.bin $(BUILD)/$(PR_NAME)-0x10000.bin
 clean:
 	rm -fr ./build/
 
-.PHONY: flash clean all
+.PHONY: flash clean all build info
