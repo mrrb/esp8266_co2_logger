@@ -9,14 +9,14 @@
 #ifndef SENSORS_H
 #define SENSORS_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif /* __cplusplus */
-
 #include <c_types.h>
 
 #include "zmod4xxx/zmod4xxx_types.h"
 #include "zmod4xxx/iaq_2nd_gen.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
 
 typedef struct {
     uint32_t temp;
