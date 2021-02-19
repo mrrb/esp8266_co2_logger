@@ -25,7 +25,14 @@
 // Sensors
 #define SCD30_READ_INTERVAL   3000
 #define ZMOD_READ_INTERVAL    1990
-#define SERVER_WRITE_INTERVAL 5000
+#define SERVER_WRITE_INTERVAL 10000
+
+// Network
+#define SNTP_SERVERNAME_0 "0.es.pool.ntp.org"
+#define SNTP_SERVERNAME_1 "1.es.pool.ntp.org"
+#define SNTP_TIMEZONE     1
+
+#define INFLUX_URL ""
 
 // Other
 #define USE_OPTIMIZE_PRINTF
