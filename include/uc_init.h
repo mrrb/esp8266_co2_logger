@@ -40,6 +40,7 @@ status_t uc_init_wifi();
 status_t uc_init_gpio();
 status_t uc_init_i2c();
 status_t uc_init_sensors(zmod4xxx_dev_t* zmod_dev, iaq_2nd_gen_handle_t* iaq_2nd_handle);
+status_t uc_init_sntp();
 
 #ifdef __cplusplus
 }

@@ -6,7 +6,9 @@
  * \date 2020-12-13
  */
 
+#include <sntp.h>
 #include <osapi.h>
+#include <user_interface.h>
 
 #include "uc_init.h"
 #include "fast_gpio.h"
@@ -57,6 +59,8 @@ uc_init_wifi() {
         return STA_ERR;
     }
     os_delay_us(1000);
+
+    wifi_set_sleep_type(MODEM_SLEEP_T);
 
 #ifdef DEBUG_MODE
     os_printf("WiFi init - Ok\n");
@@ -131,6 +135,29 @@ uc_init_sensors(zmod4xxx_dev_t* zmod_dev, iaq_2nd_gen_handle_t* iaq_2nd_handle) 
 
 #ifdef DEBUG_MODE
     os_printf("Sensors init - Ok\n");
+#endif
+    return STA_OK;
+}
+
+status_t
+uc_init_sntp() {
+#ifdef SNTP_SERVERNAME_0
+    sntp_setservername(0, SNTP_SERVERNAME_0);
+#endif
+
+#ifdef SNTP_SERVERNAME_1
+    sntp_setservername(1, SNTP_SERVERNAME_1);
+#endif
+
+#ifdef SNTP_SERVERNAME_2
+    sntp_setservername(2, SNTP_SERVERNAME_2);
+#endif
+
+    sntp_set_timezone(SNTP_TIMEZONE);
+    sntp_init();
+
+#ifdef DEBUG_MODE
+    os_printf("Network init - Ok\n");
 #endif
     return STA_OK;
 }
