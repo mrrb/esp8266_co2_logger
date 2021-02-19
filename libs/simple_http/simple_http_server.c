@@ -78,12 +78,12 @@ send_server_response(struct espconn* p_conn, char* data, size_t data_len, uint16
 
     if (data == NULL || data_len == 0) {
         msg_size = os_sprintf(msg,
-                              "HTTP/1.0 %d %s\r\nContent-Length: %d\r\nServer: lwIP/1.4.0\r\n" \
+                              "HTTP/1.1 %d %s\r\nContent-Length: %d\r\nServer: lwIP/1.4.0\r\n" \
                               "Content-Type: %s\r\n",
                               response_code, response_code_msg, data_len, content_type_txt);
     } else {
         msg_size = os_sprintf(msg,
-                              "HTTP/1.0 %d %s\r\nContent-Length: %d\r\nServer: lwIP/1.4.0\r\n" \
+                              "HTTP/1.1 %d %s\r\nContent-Length: %d\r\nServer: lwIP/1.4.0\r\n" \
                               "Content-Type: %s\r\n\r\n%s",
                               response_code, response_code_msg, data_len, content_type_txt, data);
     }
@@ -102,7 +102,7 @@ server_response(void *arg, char *pusrdata, unsigned short length) {
     char* second_space;
     char* data_start;
 
-    char* request_type;
+    char* request_method;
     char* request_path;
 
     char* data = NULL;
@@ -112,7 +112,7 @@ server_response(void *arg, char *pusrdata, unsigned short length) {
 
     simple_http_server_config_t* p_config = (simple_http_server_config_t*)p_conn->reverse;
 
-    simple_http_request_info_t request_data;
+    simple_http_server_request_info_t request_data;
 
     first_space = os_strchr(pusrdata, ' ');
     if (first_space == NULL) {
@@ -138,15 +138,15 @@ server_response(void *arg, char *pusrdata, unsigned short length) {
         data_start += 3;
     }
 
-    request_type = (char*)os_malloc(sizeof(char) * SIMPLE_HTTP_SERVER_MAX_REQUEST_TYPE);
+    request_method = (char*)os_malloc(sizeof(char) * SIMPLE_HTTP_SERVER_MAX_REQUEST_METHOD);
     request_path = (char*)os_malloc(sizeof(char) * SIMPLE_HTTP_SERVER_MAX_REQUEST_PATH);
 
-    if (request_path == NULL || request_type == NULL) {
+    if (request_path == NULL || request_method == NULL) {
         send_server_response(p_conn, NULL, 0, 500, HTTP_CONTENT_TYPE_TEXT_HTML);
         return;
     }
 
-    os_strncpy(request_type, pusrdata, first_space - pusrdata);
+    os_strncpy(request_method, pusrdata, first_space - pusrdata);
     os_strncpy(request_path, first_space+1, second_space - first_space - 1);
 
     // Call user response generator
@@ -154,15 +154,17 @@ server_response(void *arg, char *pusrdata, unsigned short length) {
         send_server_response(p_conn, NULL, 0, 404, HTTP_CONTENT_TYPE_TEXT_HTML);
     } else {
         request_data.p_conn = p_conn;
-        request_data.request_type = request_type;
+        request_data.request_method = request_method;
         request_data.request_path = request_path;
         request_data.request_data = data_start;
+        request_data.raw_request = pusrdata;
+        request_data.raw_request_length = length;
 
         data = p_config->user_callback(&request_data, &data_len, &response_code, &content_type);
         send_server_response(p_conn, data, data_len, response_code, content_type);
     }
 
-    os_free(request_type);
+    os_free(request_method);
     os_free(request_path);
 
     if (data != NULL) {
@@ -178,7 +180,7 @@ server_conn_call(void *arg) {
 }
 
 simple_http_status_t ICACHE_FLASH_ATTR
-create_web_server(struct espconn* p_conn, uint16_t port, simple_web_server_callback_t callback) {
+create_basic_http_server(struct espconn* p_conn, uint16_t port, simple_http_server_callback_t callback) {
     simple_http_server_config_t* p_config = (simple_http_server_config_t*)os_zalloc(sizeof(simple_http_server_config_t));
 
     // if (callback == NULL) {
