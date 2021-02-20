@@ -108,51 +108,56 @@ web_view(simple_http_server_request_info_t* p_data, size_t* p_data_size, uint16_
 
 static void ICACHE_FLASH_ATTR
 timer_send_data(void* args) {
-    char* http_data_buff = (char*)os_malloc(sizeof(char) * (F2C_CHAR_BUFF_SIZE + 15));
+    char* http_data_buff = (char*)os_malloc(sizeof(char) * (F2C_CHAR_BUFF_SIZE * 7 + 15));
     char* value_temp = (char*)os_malloc(sizeof(char) * F2C_CHAR_BUFF_SIZE);
     char* f2c_str;
 
+    size_t print_len = 0;
+
+    uint8_t send_en = 0;
+
     os_timer_disarm((os_timer_t*) &timer_logger);
-    // simple_http_status_t a = simple_http_request("http://google.es", NULL, NULL, "GET", NULL);
 
     if (zmod4410_data_valid) {
+        send_en = 1;
+
+        print_len += os_sprintf(http_data_buff + print_len, "zmod ");
+
         f2c_str = f2c(*((real32_t*) &iaq_results.eco2), value_temp);
-        os_sprintf(http_data_buff, "zmod eco2=%s\0", f2c_str);
-        simple_http_request(INFLUX_URL, http_data_buff, NULL, "POST", NULL);
-        os_delay_us(2000);
+        print_len += os_sprintf(http_data_buff + print_len, "eco2=%s,", f2c_str);
 
         f2c_str = f2c(*((real32_t*) &iaq_results.etoh), value_temp);
-        os_sprintf(http_data_buff, "zmod etoh=%s\0", f2c_str);
-        simple_http_request(INFLUX_URL, http_data_buff, NULL, "POST", NULL);
-        os_delay_us(2000);
+        print_len += os_sprintf(http_data_buff + print_len, "etoh=%s,", f2c_str);
 
         f2c_str = f2c(*((real32_t*) &iaq_results.iaq), value_temp);
-        os_sprintf(http_data_buff, "zmod iaq=%s\0", f2c_str);
-        simple_http_request(INFLUX_URL, http_data_buff, NULL, "POST", NULL);
-        os_delay_us(2000);
+        print_len += os_sprintf(http_data_buff + print_len, "iaq=%s,", f2c_str);
 
         f2c_str = f2c(*((real32_t*) &iaq_results.tvoc), value_temp);
-        os_sprintf(http_data_buff, "zmod tvoc=%s\0", f2c_str);
-        simple_http_request(INFLUX_URL, http_data_buff, NULL, "POST", NULL);
-        os_delay_us(2000);
+        print_len += os_sprintf(http_data_buff + print_len, "tvoc=%s\n", f2c_str);
     }
 
     if (scd30_data_valid) {
+        send_en = 1;
+
+        print_len += os_sprintf(http_data_buff + print_len, "scd30 ");
+
         f2c_str = f2c(*((real32_t*) &scd30_result.temp), value_temp);
-        os_sprintf(http_data_buff, "scd30 temp=%s\0", f2c_str);
-        simple_http_request(INFLUX_URL, http_data_buff, NULL, "POST", NULL);
-        os_delay_us(2000);
+        print_len += os_sprintf(http_data_buff + print_len, "temp=%s,", f2c_str);
 
         f2c_str = f2c(*((real32_t*) &scd30_result.co2), value_temp);
-        os_sprintf(http_data_buff, "scd30 co2=%s\0", f2c_str);
-        simple_http_request(INFLUX_URL, http_data_buff, NULL, "POST", NULL);
-        os_delay_us(2000);
+        print_len += os_sprintf(http_data_buff + print_len, "co2=%s,", f2c_str);
 
         f2c_str = f2c(*((real32_t*) &scd30_result.rh), value_temp);
-        os_sprintf(http_data_buff, "scd30 rh=%s\0", f2c_str);
+        print_len += os_sprintf(http_data_buff + print_len, "rh=%s", f2c_str);
+    }
+
+    if (send_en) {
         simple_http_request(INFLUX_URL, http_data_buff, NULL, "POST", NULL);
         os_delay_us(2000);
     }
+
+    os_free(http_data_buff);
+    os_free(value_temp);
 
     os_timer_arm((os_timer_t*)&timer_logger, SERVER_WRITE_INTERVAL, 1);
 }
@@ -256,7 +261,7 @@ user_init() {
     status = uc_init_sensors(&zmod_dev, &iaq_handle);
 
     if (status != STA_OK) {
-#ifdef DEBUG_MODE
+#ifdef DEBUG_PRINT_MODE
         os_printf("uc init failed, please restart!\n");
 #endif
         for (;;) {
@@ -264,7 +269,7 @@ user_init() {
             os_delay_us(2000);
         }
     } else {
-#ifdef DEBUG_MODE
+#ifdef DEBUG_PRINT_MODE
         os_printf("Init done!\n");
 #endif
 
