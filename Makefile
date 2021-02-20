@@ -11,9 +11,9 @@ LIBRARY_PATH += "$(shell pwd)/libs/zmod4xxx"
 BUILD := ./build
 OBJ   := $(BUILD)/obj
 
-SRCS_DRIVER := $(shell find $(DRIVER) -name "*.c")
-SRCS_LIBS   := $(shell find $(LIBS) -name "*.c")
-SRCS_USER   := $(shell find $(SRC) -name "*.c")
+SRCS_DRIVER := $(shell find $(DRIVER) -name "*.c" -o -name "*.S")
+SRCS_LIBS   := $(shell find $(LIBS) -name "*.c" -o -name "*.S")
+SRCS_USER   := $(shell find $(SRC) -name "*.c" -o -name "*.S")
 
 OBJS_DRIVER := $(patsubst $(DRIVER)/%.c, $(OBJ)/driver/%.o, $(SRCS_DRIVER))
 OBJS_LIBS   := $(patsubst $(LIBS)/%.c, $(OBJ)/libs/%.o, $(SRCS_LIBS))
@@ -24,7 +24,7 @@ OBJS := $(OBJS_DRIVER) $(OBJS_LIBS) $(OBJS_USER)
 
 #
 CC = xtensa-lx106-elf-gcc
-CFLAGS =  -I$(SRC) -I$(INC) -I$(LIBS) -I$(DRIVER) -DICACHE_FLASH -mlongcalls -std=gnu11
+CFLAGS =  -I$(SRC) -I$(INC) -I$(LIBS) -I$(DRIVER) -DICACHE_FLASH -mlongcalls -std=gnu11 -Wall
 CFLAGS += -Og -ggdb
 # CFLAGS += -Os -g
 
