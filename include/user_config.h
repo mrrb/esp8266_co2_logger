@@ -1,6 +1,6 @@
 // Debug
-#ifndef DEBUG_MODE
-#define DEBUG_MODE
+#ifndef DEBUG_PRINT_MODE
+#define DEBUG_PRINT_MODE
 #endif
 
 // UART
