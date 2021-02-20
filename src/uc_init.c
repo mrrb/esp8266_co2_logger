@@ -27,7 +27,7 @@ uc_init_uart() {
     uart_div_modify(UART0, UART_CLK_FREQ / BITRATE);
     os_delay_us(1000);
 
-#ifdef DEBUG_MODE
+#ifdef DEBUG_PRINT_MODE
     os_printf("UART init - Ok\n");
 #endif
     return STA_OK;
@@ -62,7 +62,7 @@ uc_init_wifi() {
 
     wifi_set_sleep_type(MODEM_SLEEP_T);
 
-#ifdef DEBUG_MODE
+#ifdef DEBUG_PRINT_MODE
     os_printf("WiFi init - Ok\n");
 #endif
     return STA_OK;
@@ -72,7 +72,7 @@ status_t
 uc_init_gpio() {
     GPIO2_OUTPUT_SET;
 
-#ifdef DEBUG_MODE
+#ifdef DEBUG_PRINT_MODE
     os_printf("GPIO init - Ok\n");
 #endif
     return STA_OK;
@@ -83,7 +83,7 @@ uc_init_i2c() {
     uint8_t result;
     I2C_INIT(&result);
 
-#ifdef DEBUG_MODE
+#ifdef DEBUG_PRINT_MODE
     os_printf("I2C init - Ok\n");
 #endif
     return STA_OK;
@@ -103,7 +103,7 @@ uc_init_sensors(zmod4xxx_dev_t* zmod_dev, iaq_2nd_gen_handle_t* iaq_2nd_handle) 
 
     zmod_result = zmod4xxx_read_sensor_info(zmod_dev);
     if (zmod_result) {
-#ifdef DEBUG_MODE
+#ifdef DEBUG_PRINT_MODE
         os_printf("ZMOD4410 HW initialize error [%d]!\n", zmod_result);
 #endif
         return STA_ERR;
@@ -111,7 +111,7 @@ uc_init_sensors(zmod4xxx_dev_t* zmod_dev, iaq_2nd_gen_handle_t* iaq_2nd_handle) 
 
     zmod_result = zmod4xxx_prepare_sensor(zmod_dev);
     if (zmod_result) {
-#ifdef DEBUG_MODE
+#ifdef DEBUG_PRINT_MODE
         os_printf("ZMOD4410 sensor preparation error [%d]!\n", zmod_result);
 #endif
         return STA_ERR;
@@ -119,7 +119,7 @@ uc_init_sensors(zmod4xxx_dev_t* zmod_dev, iaq_2nd_gen_handle_t* iaq_2nd_handle) 
 
     zmod_result = init_iaq_2nd_gen(iaq_2nd_handle);
     if (zmod_result) {
-#ifdef DEBUG_MODE
+#ifdef DEBUG_PRINT_MODE
         os_printf("ZMOD4410 algorithm initializing error [%d]!\n", zmod_result);
 #endif
         return STA_ERR;
@@ -127,13 +127,13 @@ uc_init_sensors(zmod4xxx_dev_t* zmod_dev, iaq_2nd_gen_handle_t* iaq_2nd_handle) 
 
     zmod_result = zmod4xxx_start_measurement(zmod_dev);
     if (zmod_result) {
-#ifdef DEBUG_MODE
+#ifdef DEBUG_PRINT_MODE
         os_printf("ZMOD4410 measurement starting error [%d]!\n", zmod_result);
 #endif
         return STA_ERR;
     }
 
-#ifdef DEBUG_MODE
+#ifdef DEBUG_PRINT_MODE
     os_printf("Sensors init - Ok\n");
 #endif
     return STA_OK;
@@ -156,7 +156,7 @@ uc_init_sntp() {
     sntp_set_timezone(SNTP_TIMEZONE);
     sntp_init();
 
-#ifdef DEBUG_MODE
+#ifdef DEBUG_PRINT_MODE
     os_printf("Network init - Ok\n");
 #endif
     return STA_OK;
