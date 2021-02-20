@@ -48,7 +48,7 @@ extern "C" {
 #define HTTP_DEFAULT_PORT 80
 #define HTTPS_DEFAULT_PORT 443
 
-#define HTTP_PROTO_VERSION     "HTTP/1.1"
+#define HTTP_PROTO_VERSION     "HTTP/1.0"
 #define HTTP_MAX_RESPONSE_SIZE 4096
 
 typedef struct espconn espconn_t;
@@ -95,14 +95,13 @@ typedef char* (*simple_http_server_callback_t)(simple_http_server_request_info_t
 /**
  * \brief           HTTP request callback function definition
  */
-typedef void (*simple_http_response_callback_t)(const char* const data, uint8_t status, const char* const buffer);
+typedef void (*simple_http_response_callback_t)(const char* const data, size_t data_len, uint8_t status, const char* const buffer);
 
 /**
  * \brief           Info of the outgoing request
  */
 typedef struct simple_http_client_request_info {
     struct espconn* p_conn;                     /** System connection object */
-    // char* url;                                  /** Request destination */
     char* hostname;                             /** Request destination hostname */
     char* path;                                 /** Request destination path */
     uint16_t port;                              /** Request destination port */
@@ -113,7 +112,6 @@ typedef struct simple_http_client_request_info {
     simple_http_response_callback_t callback;   /** Request response user callback */
     char* response_buffer;                      /** HTTP response buffer */
     size_t response_buffer_len;                 /** HTTP response buffer length */
-    char* send_buff;                            /** HTTP data to be sent temp buffer */
 } simple_http_client_request_info_t;
 
 typedef struct simple_http_server_config {
