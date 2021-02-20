@@ -26,6 +26,8 @@
 extern "C" {
 #endif /* __cplusplus */
 
+#define SIMPLE_HTTP_SINGLE_CONN_ONLY
+
 #define SIMPLE_HTTP_SERVER_MAX_REQUEST_PATH   100
 #define SIMPLE_HTTP_SERVER_MAX_REQUEST_METHOD 8
 
@@ -72,6 +74,7 @@ typedef enum simple_http_status {
     SIMPLE_HTTP_DNS_ERROR,
     SIMPLE_HTTP_NO_CONNECTION,
     SIMPLE_HTTP_MEM_ERROR,
+    SIMPLE_HTTP_CLIENT_NOT_READY,
     SIMPLE_HTTP_ERROR
 } simple_http_status_t;
 
@@ -131,10 +134,19 @@ simple_http_status_t create_basic_http_server(struct espconn* p_conn, uint16_t p
 #define simple_http_post(url, data, headers, callback) simple_http_request(url, data, headers, "POST", callback)
 
 /**
- * \brief           a
+ * \brief
  */
 simple_http_status_t simple_http_request(char* url, char* data, char* headers, char* request_method, simple_http_response_callback_t response_callback);
 
+/**
+ * \brief
+ */
+simple_http_status_t simple_http_client_ready(void);
+
+/**
+ * \brief
+ */
+simple_http_status_t simple_http_client_reset(void);
 
 #ifdef __cplusplus
 }

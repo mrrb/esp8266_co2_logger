@@ -17,6 +17,11 @@
 #include "simple_http/simple_http.h"
 
 
+#ifdef SIMPLE_HTTP_SINGLE_CONN_ONLY
+static struct espconn client_conn;
+static uint8_t client_conn_blocked = 0;
+#endif
+
 static void ICACHE_FLASH_ATTR
 free_client_request_info(simple_http_client_request_info_t* p_info) {
     if (p_info == NULL) {
@@ -51,6 +56,23 @@ free_client_request_info(simple_http_client_request_info_t* p_info) {
 }
 
 static void ICACHE_FLASH_ATTR
+free_client_conn(struct espconn* p_conn) {
+    espconn_abort(p_conn);
+    espconn_delete(p_conn);
+    os_delay_us(50);
+    system_soft_wdt_feed();
+
+	if(p_conn->proto.tcp != NULL) {
+		os_free(p_conn->proto.tcp);
+        p_conn->proto.tcp = NULL;
+	}
+
+#ifndef SIMPLE_HTTP_SINGLE_CONN_ONLY
+    os_free(p_conn);
+#endif /* SIMPLE_HTTP_SINGLE_CONN_ONLY */
+}
+
+static void ICACHE_FLASH_ATTR
 request_disconnect_callback(void* arg) {
 	struct espconn* p_conn = (struct espconn*)arg;
     simple_http_client_request_info_t* p_info;
@@ -60,7 +82,7 @@ request_disconnect_callback(void* arg) {
     char* proto_version = HTTP_PROTO_VERSION" ";
     char* response_data;
 
-    // system_soft_wdt_feed();
+    system_soft_wdt_feed();
 	if(p_conn == NULL) {
 		return;
 	}
@@ -84,12 +106,7 @@ request_disconnect_callback(void* arg) {
         free_client_request_info(p_info);
 	}
 
-	if(p_conn->proto.tcp != NULL) {
-		os_free(p_conn->proto.tcp);
-        p_conn->proto.tcp = NULL;
-	}
-	os_free(p_conn);
-    p_conn = NULL;
+    free_client_conn(p_conn);
 }
 
 static void ICACHE_FLASH_ATTR
@@ -97,7 +114,7 @@ sent_callback(void* arg) {
     struct espconn* p_conn = (struct espconn*)arg;
     simple_http_client_request_info_t* p_info = (simple_http_client_request_info_t*)p_conn->reverse;
 
-    // system_soft_wdt_feed();
+    system_soft_wdt_feed();
     if (p_info->data == NULL) {
         /* No need to send more data */
 	} else {
@@ -107,6 +124,9 @@ sent_callback(void* arg) {
         } else {
 			espconn_send(p_conn, (uint8_t*)p_info->data, strlen(p_info->data));
         }
+
+        os_delay_us(50);
+        system_soft_wdt_feed();
 
 		os_free(p_info->data);
 		p_info->data = NULL;
@@ -121,7 +141,6 @@ receive_callback(void* arg, char* buf, unsigned short len) {
     const size_t new_len = p_info->response_buffer_len + len;
     char* new_buffer;
 
-    // system_soft_wdt_feed();
 	if (p_info->response_buffer == NULL) {
 		return;
 	}
@@ -129,11 +148,14 @@ receive_callback(void* arg, char* buf, unsigned short len) {
 	if (new_len > HTTP_MAX_RESPONSE_SIZE || (new_buffer = (char*)os_malloc(sizeof(char) * new_len)) == NULL) {
 		p_info->response_buffer[0] = '\0';
 
-		if (p_info->secure) {
-			espconn_secure_disconnect(p_conn);
-        } else {
-			espconn_disconnect(p_conn);
-        }
+		// if (p_info->secure) {
+		// 	espconn_secure_disconnect(p_conn);
+        // } else {
+		// 	espconn_disconnect(p_conn);
+        // }
+
+        os_delay_us(50);
+        system_soft_wdt_feed();
 
 		return;
 	}
@@ -155,9 +177,11 @@ request_connect_callback(void* arg) {
 	char* send_buff;
     size_t buff_len, total_len;
 
-    // system_soft_wdt_feed();
 	espconn_regist_sentcb(p_conn, sent_callback);
     espconn_regist_recvcb(p_conn, receive_callback);
+
+    os_delay_us(50);
+    system_soft_wdt_feed();
 
 	char data_headers[28] = "";
 
@@ -190,14 +214,17 @@ request_connect_callback(void* arg) {
 		espconn_send(p_conn, (uint8_t*)send_buff, total_len);
 	}
 
+    os_delay_us(50);
+    system_soft_wdt_feed();
+
     os_free(send_buff);
     os_free(p_info->headers);
-    p_info->headers = NULL;
+    p_info->headers = NULL;    
 }
 
 static void ICACHE_FLASH_ATTR
 request_error_callback(void* arg, sint8 errType) {
-    // system_soft_wdt_feed();
+    system_soft_wdt_feed();
 	request_disconnect_callback(arg);
 }
 
@@ -215,7 +242,7 @@ request_dns_callback(const char* name, ip_addr_t* p_ip, void* arg) {
         return;
     }
 
-    // system_soft_wdt_feed();
+    system_soft_wdt_feed();
     p_conn->type  = ESPCONN_TCP;
     p_conn->state = ESPCONN_NONE;
 
@@ -225,8 +252,8 @@ request_dns_callback(const char* name, ip_addr_t* p_ip, void* arg) {
 
     os_memcpy(p_conn->proto.tcp->remote_ip, p_ip, 4);
 
-    espconn_regist_connectcb(p_conn, request_connect_callback);
     espconn_regist_disconcb(p_conn, request_disconnect_callback);
+    espconn_regist_connectcb(p_conn, request_connect_callback);
     espconn_regist_reconcb(p_conn, request_error_callback);
 
     if (p_info->secure) {
@@ -248,14 +275,19 @@ make_http_request(simple_http_client_request_info_t* p_info) {
 
     struct espconn* p_conn;
 
+#ifdef SIMPLE_HTTP_SINGLE_CONN_ONLY
+    p_conn = &client_conn;
+#else
     p_conn = (struct espconn*)os_zalloc(sizeof(struct espconn));
     if (p_conn == NULL) {
         return SIMPLE_HTTP_MEM_ERROR;
     }
+#endif /* SIMPLE_HTTP_SINGLE_CONN_ONLY */
+
     p_conn->reverse = p_info;
 
     wifi_get_ip_info(STATION_IF, &ipconfig);
-    // system_soft_wdt_feed();
+    system_soft_wdt_feed();
 
     /* Check valid wifi connection */
     if (wifi_station_get_connect_status() != STATION_GOT_IP || ipconfig.ip.addr == 0) {
@@ -278,6 +310,28 @@ make_http_request(simple_http_client_request_info_t* p_info) {
 }
 
 simple_http_status_t ICACHE_FLASH_ATTR
+simple_http_client_ready(void) {
+#ifdef SIMPLE_HTTP_SINGLE_CONN_ONLY
+    if (client_conn_blocked) {
+        return SIMPLE_HTTP_CLIENT_NOT_READY;
+    } else {
+        return SIMPLE_HTTP_OK;
+    }
+#else
+    return SIMPLE_HTTP_OK;
+#endif /* SIMPLE_HTTP_SINGLE_CONN_ONLY */
+}
+
+simple_http_status_t ICACHE_FLASH_ATTR
+simple_http_client_reset(void) {
+#ifdef SIMPLE_HTTP_SINGLE_CONN_ONLY
+    free_client_request_info(client_conn.reverse);
+    free_client_conn(&client_conn);
+#endif /* SIMPLE_HTTP_SINGLE_CONN_ONLY */
+    return SIMPLE_HTTP_OK;
+}
+
+simple_http_status_t ICACHE_FLASH_ATTR
 simple_http_request(char* url, char* data, char* headers, char* request_method, simple_http_response_callback_t response_callback) {
     char default_path[] = "/";
     char* port_colon_position;
@@ -287,8 +341,14 @@ simple_http_request(char* url, char* data, char* headers, char* request_method, 
 
     simple_http_status_t request_err;
 
-    // system_soft_wdt_feed();
-    
+#ifdef SIMPLE_HTTP_SINGLE_CONN_ONLY
+    if (client_conn_blocked) {
+        return SIMPLE_HTTP_CLIENT_NOT_READY;
+    }
+#endif /* SIMPLE_HTTP_SINGLE_CONN_ONLY */
+
+    system_soft_wdt_feed();
+
     p_request_info = (simple_http_client_request_info_t*)os_zalloc(sizeof(simple_http_client_request_info_t));
     if (p_request_info == NULL) {
         return SIMPLE_HTTP_MEM_ERROR;

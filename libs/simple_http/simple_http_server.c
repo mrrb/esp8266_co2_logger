@@ -169,6 +169,7 @@ server_response(void *arg, char *pusrdata, unsigned short length) {
 
     if (data != NULL) {
         os_free(data);
+        data = NULL;
     }
 }
 
