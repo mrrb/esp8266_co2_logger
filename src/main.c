@@ -204,7 +204,17 @@ print_zmod_results() {
 
 void ICACHE_FLASH_ATTR
 timer_func_blink(void* args) {
-    GPIO2_IN ? GPIO2_L : GPIO2_H;
+    os_timer_disarm((os_timer_t*)&timer_zmod);
+
+    if (GPIO2_IN) {
+        GPIO2_L;
+        os_timer_arm((os_timer_t*)&timer_blink, STATUS_LED_TIME_ON, 0);
+    } else {
+        GPIO2_H;
+        os_timer_arm((os_timer_t*)&timer_blink, STATUS_LED_TIME_OFF, 0);
+    }
+
+    // GPIO2_IN ? GPIO2_L : GPIO2_H;
 }
 
 void ICACHE_FLASH_ATTR
@@ -278,7 +288,7 @@ user_init() {
         // Timers
         os_timer_setfn((os_timer_t*)&timer_blink, (os_timer_func_t *)timer_func_blink, NULL);
 #ifdef STATUS_LED_ENABLE
-        os_timer_arm((os_timer_t*)&timer_blink, STATUS_LED_TIME, 1);
+        os_timer_arm((os_timer_t*)&timer_blink, STATUS_LED_TIME_ON, 1);
 #else
         GPIO2_L;
 #endif /* STATUS_LED_ENABLE */

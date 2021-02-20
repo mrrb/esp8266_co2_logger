@@ -20,7 +20,9 @@
 
 // Status LED
 #define STATUS_LED_ENABLE
-#define STATUS_LED_TIME   2000
+// #define STATUS_LED_TIME   2000
+#define STATUS_LED_TIME_ON  4
+#define STATUS_LED_TIME_OFF 30000
 
 // Sensors
 #define SCD30_READ_INTERVAL   3000
