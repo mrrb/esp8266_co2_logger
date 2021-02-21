@@ -204,7 +204,7 @@ print_zmod_results() {
 
 void ICACHE_FLASH_ATTR
 timer_func_blink(void* args) {
-    os_timer_disarm((os_timer_t*)&timer_zmod);
+    os_timer_disarm((os_timer_t*)&timer_blink);
 
     if (GPIO2_IN) {
         GPIO2_L;
