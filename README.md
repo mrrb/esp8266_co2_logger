@@ -4,7 +4,8 @@ Small system to compare the Sensirion [SCD30](https://www.sensirion.com/en/envir
 
 ## Results
 
-**Grafana board not available yet!**
+Grafana dashboard ->
+**[https://grafana.data.mrrb.xyz/d/6cdDPZyGz](https://grafana.data.mrrb.xyz/d/6cdDPZyGz).** I will try to post the raw results in a few weeks.
 
 ## Test board
 
