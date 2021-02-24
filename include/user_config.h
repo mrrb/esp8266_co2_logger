@@ -15,6 +15,8 @@
 #define SSID_PW_LENGTH  32
 #define HOSTNAME_LENGTH 16
 
+// #define WEB_ENABLE
+
 // I2C
 // View header $(PROJECT_ROOT)/driver/driver/i2c_master.h
 
@@ -28,6 +30,8 @@
 #define SCD30_READ_INTERVAL   3000
 #define ZMOD_READ_INTERVAL    1990
 #define SERVER_WRITE_INTERVAL 10000
+
+// #define PRINT_ON_MEASURE_ENABLE
 
 // Network
 #define SNTP_SERVERNAME_0 "0.es.pool.ntp.org"

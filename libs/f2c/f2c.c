@@ -25,6 +25,8 @@ _float_to_char(float x, char* p, size_t buff_size) {
     *--s = (decimals % 10) + '0';
     decimals /= 10; // repeat for as many decimal places as you need
     *--s = (decimals % 10) + '0';
+    decimals /= 10; // repeat for as many decimal places as you need
+    *--s = (decimals % 10) + '0';
     *--s = '.';
 
     while (units > 0) {

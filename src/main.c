@@ -42,9 +42,12 @@ static volatile os_timer_t timer_zmod;
 
 static volatile os_timer_t timer_logger;
 
+#ifdef WEB_ENABLE
 static struct espconn web_conn;
+#endif
 
 
+#ifdef WEB_ENABLE
 char* ICACHE_FLASH_ATTR
 web_view(simple_http_server_request_info_t* p_data, size_t* p_data_size, uint16_t* p_response_code, http_content_type_t* p_content_type) {
     char* temp_data;
@@ -105,55 +108,82 @@ web_view(simple_http_server_request_info_t* p_data, size_t* p_data_size, uint16_
 
     return data;
 }
+#endif /* WEB_ENABLE */
 
 static void ICACHE_FLASH_ATTR
 timer_send_data(void* args) {
-    char* http_data_buff = (char*)os_malloc(sizeof(char) * (F2C_CHAR_BUFF_SIZE * 7 + 15));
+    char* http_data_buff = (char*)os_malloc(sizeof(char) * (F2C_CHAR_BUFF_SIZE * 8 + 55));
     char* value_temp = (char*)os_malloc(sizeof(char) * F2C_CHAR_BUFF_SIZE);
     char* f2c_str;
+
+    float zmod_eco2, zmod_etoh, zmod_iaq, zmod_tvoc, zmod_rcda;
+    uint32_t scd30_temp, scd30_co2, scd30_rh;
 
     size_t print_len = 0;
 
     uint8_t send_en = 0;
 
+    if (value_temp == NULL || http_data_buff == NULL) {
+        return;
+    }
+
     os_timer_disarm((os_timer_t*) &timer_logger);
 
     if (zmod4410_data_valid) {
-        send_en = 1;
+        zmod_eco2 = iaq_results.eco2;
+        zmod_etoh = iaq_results.etoh;
+        zmod_tvoc = iaq_results.tvoc;
+        zmod_rcda = iaq_results.log_rcda;
+        zmod_iaq  = iaq_results.iaq;
+        send_en   = 1;
 
         print_len += os_sprintf(http_data_buff + print_len, "zmod ");
 
-        f2c_str = f2c(*((real32_t*) &iaq_results.eco2), value_temp);
+        f2c_str = f2c(zmod_eco2, value_temp);
         print_len += os_sprintf(http_data_buff + print_len, "eco2=%s,", f2c_str);
 
-        f2c_str = f2c(*((real32_t*) &iaq_results.etoh), value_temp);
+        f2c_str = f2c(zmod_etoh, value_temp);
         print_len += os_sprintf(http_data_buff + print_len, "etoh=%s,", f2c_str);
 
-        f2c_str = f2c(*((real32_t*) &iaq_results.iaq), value_temp);
+        f2c_str = f2c(zmod_rcda, value_temp);
+        print_len += os_sprintf(http_data_buff + print_len, "rcda=%s,", f2c_str);
+
+        f2c_str = f2c(zmod_iaq, value_temp);
         print_len += os_sprintf(http_data_buff + print_len, "iaq=%s,", f2c_str);
 
-        f2c_str = f2c(*((real32_t*) &iaq_results.tvoc), value_temp);
-        print_len += os_sprintf(http_data_buff + print_len, "tvoc=%s\n", f2c_str);
+        f2c_str = f2c(zmod_tvoc, value_temp);
+        print_len += os_sprintf(http_data_buff + print_len, "tvoc=%s", f2c_str);
+
+        print_len += os_sprintf(http_data_buff + print_len, "\n");
     }
 
     if (scd30_data_valid) {
-        send_en = 1;
+        scd30_temp = scd30_result.temp;
+        scd30_co2  = scd30_result.co2;
+        scd30_rh   = scd30_result.rh;
+        send_en    = 1;
 
         print_len += os_sprintf(http_data_buff + print_len, "scd30 ");
 
-        f2c_str = f2c(*((real32_t*) &scd30_result.temp), value_temp);
+        f2c_str = f2c(*((real32_t*)&scd30_temp), value_temp);
         print_len += os_sprintf(http_data_buff + print_len, "temp=%s,", f2c_str);
 
-        f2c_str = f2c(*((real32_t*) &scd30_result.co2), value_temp);
+        f2c_str = f2c(*((real32_t*)&scd30_co2), value_temp);
         print_len += os_sprintf(http_data_buff + print_len, "co2=%s,", f2c_str);
 
-        f2c_str = f2c(*((real32_t*) &scd30_result.rh), value_temp);
+        f2c_str = f2c(*((real32_t*)&scd30_rh), value_temp);
         print_len += os_sprintf(http_data_buff + print_len, "rh=%s", f2c_str);
+
+        print_len += os_sprintf(http_data_buff + print_len, "\n");
     }
 
+    os_printf("Free dyn mem = %lu\n", system_get_free_heap_size());
     if (send_en) {
-        simple_http_request(INFLUX_URL, http_data_buff, NULL, "POST", NULL);
+        simple_http_status_t a;
+        a = simple_http_request(INFLUX_URL, http_data_buff, NULL, "POST", NULL);
+        os_printf("Sending:\n%s\nResult = %d\n\n", http_data_buff, a);
         os_delay_us(2000);
+        system_soft_wdt_feed();
     }
 
     os_free(http_data_buff);
@@ -162,6 +192,7 @@ timer_send_data(void* args) {
     os_timer_arm((os_timer_t*)&timer_logger, SERVER_WRITE_INTERVAL, 1);
 }
 
+#ifdef PRINT_ON_MEASURE_ENABLE
 static void ICACHE_FLASH_ATTR
 print_scd30_results() {
     char* txt_buff = os_zalloc(sizeof(char) * F2C_CHAR_BUFF_SIZE);
@@ -201,6 +232,7 @@ print_zmod_results() {
 
     os_free(txt_buff);
 }
+#endif /* PRINT_ON_MEASURE_ENABLE */
 
 void ICACHE_FLASH_ATTR
 timer_func_blink(void* args) {
@@ -227,7 +259,9 @@ timer_func_scd30(void* args) {
     result = read_scd30(&scd30_result);
 
     if (result == SENSOR_READ_VALID) {
-        // print_scd30_results();
+#ifdef PRINT_ON_MEASURE_ENABLE
+        print_scd30_results();
+#endif
         scd30_data_valid = 1;
     }
 }
@@ -243,12 +277,18 @@ timer_func_zmod(void* args) {
     result = read_zmod(&zmod_dev, &iaq_handle, &iaq_results);
 
     if (result == SENSOR_READ_VALID) {
-        // print_zmod_results();
+#ifdef PRINT_ON_MEASURE_ENABLE
+        print_zmod_results();
+#endif
         zmod4410_data_valid = 1;
     } else if (result == SENSOR_ZMOD_STABILIZATION) {
-        // os_printf("ZMOD stabilization process!\n");
+#ifdef PRINT_ON_MEASURE_ENABLE
+        os_printf("ZMOD stabilization process!\n");
+#endif
     } else {
-        // os_printf("ZMOD critical error %d\n", result);
+#ifdef PRINT_ON_MEASURE_ENABLE
+        os_printf("ZMOD critical error %d\n", result);
+#endif
     }
 
     os_timer_arm((os_timer_t*)&timer_zmod, ZMOD_READ_INTERVAL, 1);
@@ -261,7 +301,9 @@ void ICACHE_FLASH_ATTR
 user_init() {
     status_t status;
 
+#ifdef DEBUG_PRINT_MODE
     os_printf("** user_init **\n");
+#endif
 
     status = uc_init_uart();
     status = uc_init_wifi();
@@ -290,7 +332,7 @@ user_init() {
 #ifdef STATUS_LED_ENABLE
         os_timer_arm((os_timer_t*)&timer_blink, STATUS_LED_TIME_ON, 1);
 #else
-        GPIO2_L;
+        GPIO2_H;
 #endif /* STATUS_LED_ENABLE */
 
         os_timer_setfn((os_timer_t*)&timer_scd30, (os_timer_func_t *)timer_func_scd30, NULL);
@@ -299,9 +341,11 @@ user_init() {
         os_timer_setfn((os_timer_t*)&timer_zmod, (os_timer_func_t *)timer_func_zmod, NULL);
         os_timer_arm((os_timer_t*)&timer_zmod, ZMOD_READ_INTERVAL, 1);
 
-        create_basic_http_server(&web_conn, 80, web_view);
-
         os_timer_setfn((os_timer_t*)&timer_logger, (os_timer_func_t *)timer_send_data, NULL);
         os_timer_arm((os_timer_t*)&timer_logger, SERVER_WRITE_INTERVAL, 1);
+
+#ifdef WEB_ENABLE
+        create_basic_http_server(&web_conn, 80, web_view);
+#endif
     }
 }
