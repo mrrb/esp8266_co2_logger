@@ -22,7 +22,7 @@
 #include "zmod4xxx/zmod4xxx_config.h"
 
 
-status_t
+status_t ICACHE_FLASH_ATTR
 uc_init_uart() {
     uart_div_modify(UART0, UART_CLK_FREQ / BITRATE);
     os_delay_us(1000);
@@ -33,7 +33,7 @@ uc_init_uart() {
     return STA_OK;
 }
 
-status_t
+status_t ICACHE_FLASH_ATTR
 uc_init_wifi() {
     station_config_t sta_cfg;
     uint8_t ssid[SSID_LENGTH] = SSID;
@@ -68,7 +68,7 @@ uc_init_wifi() {
     return STA_OK;
 }
 
-status_t
+status_t ICACHE_FLASH_ATTR
 uc_init_gpio() {
     GPIO2_OUTPUT_SET;
 
@@ -78,7 +78,7 @@ uc_init_gpio() {
     return STA_OK;
 }
 
-status_t
+status_t ICACHE_FLASH_ATTR
 uc_init_i2c() {
     uint8_t result;
     I2C_INIT(&result);
@@ -89,17 +89,17 @@ uc_init_i2c() {
     return STA_OK;
 }
 
-status_t
+status_t ICACHE_FLASH_ATTR
 uc_init_sensors(zmod4xxx_dev_t* zmod_dev, iaq_2nd_gen_handle_t* iaq_2nd_handle) {
     int8_t zmod_result;
-    uint8_t prod_data[ZMOD4410_PROD_DATA_LEN];
+    uint8_t* p_prod_data = (uint8_t*)os_malloc(sizeof(uint8_t) * ZMOD4410_PROD_DATA_LEN);
 
     zmod4xxx_init_hw(zmod_dev);
     zmod_dev->i2c_addr  = ZMOD4410_I2C_ADDR;
     zmod_dev->pid       = ZMOD4410_PID;
     zmod_dev->init_conf = &zmod_sensor_type[INIT];
     zmod_dev->meas_conf = &zmod_sensor_type[MEASUREMENT];
-    zmod_dev->prod_data = prod_data;
+    zmod_dev->prod_data = p_prod_data;
 
     zmod_result = zmod4xxx_read_sensor_info(zmod_dev);
     if (zmod_result) {
@@ -139,7 +139,7 @@ uc_init_sensors(zmod4xxx_dev_t* zmod_dev, iaq_2nd_gen_handle_t* iaq_2nd_handle) 
     return STA_OK;
 }
 
-status_t
+status_t ICACHE_FLASH_ATTR
 uc_init_sntp() {
 #ifdef SNTP_SERVERNAME_0
     sntp_setservername(0, SNTP_SERVERNAME_0);

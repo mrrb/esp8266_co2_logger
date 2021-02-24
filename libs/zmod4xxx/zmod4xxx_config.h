@@ -64,11 +64,11 @@ zmod4xxx_conf zmod_sensor_type[] = {
 
     [MEASUREMENT] = {
         .start = 0x80,
-        .h = {.addr = ZMOD4410_H_ADDR, .len = 16, .data_buf = &data_set_4410_iaq_2nd_gen[0]},
-        .d = {.addr = ZMOD4410_D_ADDR, .len = 8, .data_buf = &data_set_4410_iaq_2nd_gen[16]},
-        .m = {.addr = ZMOD4410_M_ADDR, .len = 4, .data_buf = &data_set_4410_iaq_2nd_gen[24]},
-        .s = {.addr = ZMOD4410_S_ADDR, .len = 32, .data_buf = &data_set_4410_iaq_2nd_gen[28]},
-        .r = {.addr = 0x97, .len = 32},
+        .h = { .addr = ZMOD4410_H_ADDR, .len = 16, .data_buf = &data_set_4410_iaq_2nd_gen[0]},
+        .d = { .addr = ZMOD4410_D_ADDR, .len = 8,  .data_buf = &data_set_4410_iaq_2nd_gen[16]},
+        .m = { .addr = ZMOD4410_M_ADDR, .len = 4,  .data_buf = &data_set_4410_iaq_2nd_gen[24]},
+        .s = { .addr = ZMOD4410_S_ADDR, .len = 32, .data_buf = &data_set_4410_iaq_2nd_gen[28]},
+        .r = { .addr = 0x97, .len = 32},
         .prod_data_len = ZMOD4410_PROD_DATA_LEN,
     },
 };
