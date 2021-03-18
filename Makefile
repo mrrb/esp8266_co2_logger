@@ -59,6 +59,9 @@ $(OBJS): $(SRCS)
 flash: $(BUILD)/$(PR_NAME)-0x00000.bin $(BUILD)/$(PR_NAME)-0x10000.bin
 	esptool.py -a soft_reset write_flash 0 $(word 1,$^) 0x10000 $(word 2,$^)
 
+monitor:
+	miniterm.py /dev/ttyUSB0 115200
+
 clean:
 	rm -fr ./build/
 
