@@ -26,6 +26,9 @@
 
 #include "simple_http/simple_http.h"
 
+#include "ccs811/ccs811.h"
+#include "ccs811/ccs811_defs.h"
+
 
 static zmod4xxx_dev_t zmod_dev;
 static iaq_2nd_gen_handle_t iaq_handle;
@@ -33,12 +36,17 @@ static iaq_2nd_gen_results_t iaq_results;
 
 static scd30_result_t scd30_result;
 
+static ccs811_data_t ccs_data;
+static ccs811_dev_t ccs_dev;
+
 static uint8_t zmod4410_data_valid;
+static uint8_t ccs811_data_valid;
 static uint8_t scd30_data_valid;
 
 static volatile os_timer_t timer_blink;
 static volatile os_timer_t timer_scd30;
 static volatile os_timer_t timer_zmod;
+static volatile os_timer_t timer_ccs;
 
 static volatile os_timer_t timer_logger;
 
@@ -177,7 +185,11 @@ timer_send_data(void* args) {
         print_len += os_sprintf(http_data_buff + print_len, "\n");
     }
 
-    os_printf("Free dyn mem = %lu\n", system_get_free_heap_size());
+    if (ccs811_data_valid) {
+
+    }
+
+    // os_printf("Free dyn mem = %lu\n", system_get_free_heap_size());
     if (send_en) {
         simple_http_status_t a;
         a = simple_http_request(INFLUX_URL, http_data_buff, NULL, "POST", NULL);
@@ -198,14 +210,16 @@ print_scd30_results() {
     char* txt_buff = os_zalloc(sizeof(char) * F2C_CHAR_BUFF_SIZE);
     char* txt_f2c;
 
+    os_printf("SCD30:\n");
+
     txt_f2c = f2c(*((real32_t*) &scd30_result.co2), txt_buff);
-    os_printf("CO2: %s ppm\n", txt_f2c);
+    os_printf("\tCO2: %s ppm\n", txt_f2c);
 
     txt_f2c = f2c(*(real32_t*) &scd30_result.temp, txt_buff);
-    os_printf("T:   %s C\n", txt_f2c);
+    os_printf("\tT:   %s C\n", txt_f2c);
 
     txt_f2c = f2c(*(real32_t*) &scd30_result.rh, txt_buff);
-    os_printf("RH:  %s %%\n\n", txt_f2c);
+    os_printf("\tRH:  %s %%\n\n", txt_f2c);
 
     os_free(txt_buff);
 }
@@ -215,22 +229,34 @@ print_zmod_results() {
     char* txt_buff = os_zalloc(sizeof(char) * F2C_CHAR_BUFF_SIZE);
     char* txt_f2c;
 
+    os_printf("ZMOD4410:\n");
+
     txt_f2c = f2c((real32_t) iaq_results.eco2, txt_buff);
-    os_printf("eCO2: %s ppm\n", txt_f2c);
+    os_printf("\teCO2: %s ppm\n", txt_f2c);
 
     txt_f2c = f2c((real32_t) iaq_results.etoh, txt_buff);
-    os_printf("eTOH: %s ppm\n", txt_f2c);
+    os_printf("\teTOH: %s ppm\n", txt_f2c);
 
     txt_f2c = f2c((real32_t) iaq_results.iaq, txt_buff);
-    os_printf("IAQ: %s\n", txt_f2c);
+    os_printf("\tIAQ: %s\n", txt_f2c);
 
     txt_f2c = f2c((real32_t) iaq_results.tvoc, txt_buff);
-    os_printf("TVOC: %s mg/m^3\n", txt_f2c);
+    os_printf("\tTVOCs: %s mg/m^3\n", txt_f2c);
 
     txt_f2c = f2c((real32_t) iaq_results.tvoc, txt_buff);
-    os_printf("log_Rcda: %s logOhm\n\n", txt_f2c);
+    os_printf("\tlog_Rcda: %s logOhm\n\n", txt_f2c);
 
     os_free(txt_buff);
+}
+
+static void ICACHE_FLASH_ATTR
+print_ccs_results() {
+    os_printf("CCS811:\n");
+    os_printf("\teCO2: 0x%04x\n", ccs_data.eco2);
+    os_printf("\tTVOCs: 0x%04x\n", ccs_data.tvoc);
+    os_printf("\tstatus: 0x%02x\n", ccs_data.status);
+    os_printf("\terror_id: 0x%02x\n", ccs_data.error_id);
+    os_printf("\traw_data: 0x%04x\n", ccs_data.raw_data);
 }
 #endif /* PRINT_ON_MEASURE_ENABLE */
 
@@ -295,6 +321,34 @@ timer_func_zmod(void* args) {
 }
 
 void ICACHE_FLASH_ATTR
+timer_func_ccs(void* args) {
+    sensor_status_t result;
+
+    os_timer_disarm((os_timer_t*)&timer_ccs);
+    system_soft_wdt_feed();
+
+    ccs811_data_valid = 1;
+    result = read_ccs811(&ccs_dev, &ccs_data);
+
+    if (result == SENSOR_READ_VALID) {
+#ifdef PRINT_ON_MEASURE_ENABLE
+        print_ccs_results();
+#endif
+        ccs811_data_valid = 1;
+    } else if (result == SENSOR_NOT_READY) {
+#ifdef PRINT_ON_MEASURE_ENABLE
+        os_printf("CCS811 data not ready!\n");
+#endif
+    } else {
+#ifdef PRINT_ON_MEASURE_ENABLE
+        os_printf("CCS811 critical error %d\n", result);
+#endif
+    }
+
+    os_timer_arm((os_timer_t*)&timer_ccs, CCS_READ_INTERVAL, 1);
+}
+
+void ICACHE_FLASH_ATTR
 user_pre_init() {}
 
 void ICACHE_FLASH_ATTR
@@ -310,7 +364,7 @@ user_init() {
     status = uc_init_gpio();
     status = uc_init_i2c();
     status = uc_init_sntp();
-    status = uc_init_sensors(&zmod_dev, &iaq_handle);
+    status = uc_init_sensors(&zmod_dev, &iaq_handle, &ccs_dev);
 
     if (status != STA_OK) {
 #ifdef DEBUG_PRINT_MODE
@@ -340,9 +394,13 @@ user_init() {
 
         os_timer_setfn((os_timer_t*)&timer_zmod, (os_timer_func_t *)timer_func_zmod, NULL);
         os_timer_arm((os_timer_t*)&timer_zmod, ZMOD_READ_INTERVAL, 1);
+        zmod4410_data_valid = 0;
+
+        os_timer_setfn((os_timer_t*)&timer_ccs, (os_timer_func_t *)timer_func_ccs, NULL);
+        os_timer_arm((os_timer_t*)&timer_ccs, CCS_READ_INTERVAL, 1);
 
         os_timer_setfn((os_timer_t*)&timer_logger, (os_timer_func_t *)timer_send_data, NULL);
-        os_timer_arm((os_timer_t*)&timer_logger, SERVER_WRITE_INTERVAL, 1);
+        // os_timer_arm((os_timer_t*)&timer_logger, SERVER_WRITE_INTERVAL, 1);
 
 #ifdef WEB_ENABLE
         create_basic_http_server(&web_conn, 80, web_view);

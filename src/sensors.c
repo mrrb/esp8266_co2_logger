@@ -9,11 +9,16 @@
 #include <osapi.h>
 
 #include "sensors.h"
+
 #include "scd30/scd30.h"
 
 #include "zmod4xxx/zmod4xxx.h"
 #include "zmod4xxx/zmod4xxx_types.h"
 #include "zmod4xxx/iaq_2nd_gen.h"
+
+#include "ccs811/ccs811.h"
+#include "ccs811/ccs811_defs.h"
+
 
 sensor_status_t ICACHE_FLASH_ATTR
 read_scd30(scd30_result_t* p_result) {
@@ -83,6 +88,24 @@ read_zmod(zmod4xxx_dev_t* p_zmod_dev, iaq_2nd_gen_handle_t* p_iaq_handle, iaq_2n
         return SENSOR_READ_VALID;
     } else {
         return SENSOR_ZMOD_ALG_ERROR;
+    }
+
+    return SENSOR_READ_ERROR;
+}
+
+sensor_status_t ICACHE_FLASH_ATTR
+read_ccs811(ccs811_dev_t* p_ccs_dev, ccs811_data_t* p_data) {
+    ccs811_result_t ccs_result;
+
+    ccs_result = ccs811_get_co2_tvoc_status_eid_raw(p_ccs_dev, &(p_data->eco2), &(p_data->tvoc), &(p_data->status), &(p_data->error_id), &(p_data->raw_data));
+    if (ccs_result != CCS811_OK) {
+        return SENSOR_READ_ERROR;
+    }
+
+    if (!CCS811_STATUS_DATA_READY(p_data->status)) {
+        return SENSOR_NOT_READY; 
+    } else {
+        return SENSOR_READ_VALID;
     }
 
     return SENSOR_READ_ERROR;
