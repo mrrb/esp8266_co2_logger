@@ -309,14 +309,10 @@ ccs811_get_co2_tvoc_status_eid_raw(ccs811_dev_t* p_dev, uint16_t* co2, uint16_t*
     }
 
     // Get register value
-    os_printf("Reading CCS811 data...  ");
     result = p_dev->i2c_read(p_dev->i2c_addr, CCS811_APP_REG_ALG_RESULT_DATA, reg_data, 8);
     if (result != CCS811_OK) {
-        os_printf("Error :(\n");
         return result;
     }
-    os_printf("0->0x%02x, 0->0x%02x, 0->0x%02x, 0->0x%02x, 0->0x%02x, 0->0x%02x, 0->0x%02x, 0->0x%02x\n",
-        reg_data[0], reg_data[1], reg_data[2], reg_data[3], reg_data[4], reg_data[5], reg_data[6], reg_data[7]);
     *co2      = (reg_data[0] << 8) | reg_data[1];
     *tvoc     = (reg_data[2] << 8) | reg_data[3];
     *status   =  reg_data[4];

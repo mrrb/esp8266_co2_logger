@@ -181,17 +181,6 @@ uc_init_sensors(zmod4xxx_dev_t* zmod_dev, iaq_2nd_gen_handle_t* iaq_2nd_handle, 
         return STA_ERR;
     }
 
-    os_printf("CCS811: hw_id=0x%02x, hw_version=0x%02x, fw_boot_version=0x%04x, fw_app_version=0x%04x\n",
-        ccs_dev->hw_id, ccs_dev->hw_version, ccs_dev->fw_boot_version, ccs_dev->fw_app_version);
-    os_printf("CCS811: FW_MODE=%s, APP_ERASE=%s, APP_VERIFY=%s, APP_VALID=%s, DATA_READY=%s, ERROR=%s\n",
-        CCS811_STATUS_FW_MODE(css_status) == 0 ? "BOOT" : "APP",
-        CCS811_STATUS_APP_ERASE(css_status) == 0 ? "NO" : "YES",
-        CCS811_STATUS_APP_VERIFY(css_status) == 0 ? "NO" : "YES",
-        CCS811_STATUS_APP_VALID(css_status) == 0 ? "NO" : "YES",
-        CCS811_STATUS_DATA_READY(css_status) == 0 ? "NO" : "YES",
-        CCS811_STATUS_ERROR(css_status) == 0 ? "NO" : "YES"
-    );
-
     css_result = ccs811_app_start(ccs_dev);
     if (css_result != CCS811_OK) {
 #ifdef DEBUG_PRINT_MODE
