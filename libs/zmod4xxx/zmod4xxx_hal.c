@@ -38,7 +38,7 @@ zmod4xxx_i2c_read(uint8_t addr, uint8_t reg_addr, uint8_t *data_buf, uint8_t len
     }
     I2C_STOP(&status);
 
-    I2C_START_READ(0x32, &status);
+    I2C_START_READ(addr, &status);
     if (!status) {
         I2C_STOP(&status);
         return ERROR_I2C;
