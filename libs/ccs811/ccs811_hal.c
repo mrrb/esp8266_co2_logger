@@ -27,8 +27,6 @@
 ccs811_result_t ICACHE_FLASH_ATTR
 ccs811_i2c_read(uint8_t addr, uint8_t reg_addr, uint8_t* data_buf, uint8_t len) {
     uint8_t status;
-    uint8_t rd_bytes = 0;
-    uint8_t* p_data;
 
     GPIO13_L;
     os_delay_us(50);
