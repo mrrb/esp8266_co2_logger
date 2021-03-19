@@ -28,7 +28,7 @@
 #include "espmissing.h"
 
 #define I2C_MASTER_CLOCK_STRETCH
-#define I2C_MASTER_MAX_CLOCK_STRETCH 1024
+#define I2C_MASTER_MAX_CLOCK_STRETCH 100000
 
 #define I2C_MASTER_SDA_MUX PERIPHS_IO_MUX_GPIO4_U
 #define I2C_MASTER_SCL_MUX PERIPHS_IO_MUX_GPIO5_U
@@ -69,6 +69,24 @@
     if(val) I2C_MASTER_GPIO_SET(pin);\
     else I2C_MASTER_GPIO_CLR(pin)
 #endif
+
+#ifdef I2C_MASTER_CLOCK_STRETCH
+
+#define I2C_MASTER_CLOCK_STRETCH_VAR clock_stretch_limit
+
+#define I2C_MASTER_CLOCK_STRETCH_WAIT() do {                                \
+    I2C_MASTER_CLOCK_STRETCH_VAR = 0;                                       \
+    while (GPIO_INPUT_GET(GPIO_ID_PIN(I2C_MASTER_SCL_GPIO)) == 0 &&         \
+        (I2C_MASTER_CLOCK_STRETCH_VAR++) < I2C_MASTER_MAX_CLOCK_STRETCH) {  \
+        i2c_master_wait(1);                                                 \
+    }                                                                       \
+} while (0)
+
+#else
+
+#define I2C_MASTER_CLOCK_STRETCH_WAIT() do {} while (0)
+
+#endif  /* I2C_MASTER_CLOCK_STRETCH */
 
 #define I2C_MASTER_SDA_HIGH_SCL_HIGH()  \
     gpio_output_set(1<<I2C_MASTER_SDA_GPIO | 1<<I2C_MASTER_SCL_GPIO, 0, 1<<I2C_MASTER_SDA_GPIO | 1<<I2C_MASTER_SCL_GPIO, 0)

@@ -31,6 +31,12 @@
 LOCAL uint8 m_nLastSDA;
 LOCAL uint8 m_nLastSCL;
 
+
+#ifdef I2C_MASTER_CLOCK_STRETCH_VAR
+static uint32 I2C_MASTER_CLOCK_STRETCH_VAR = 0;
+#endif
+
+
 /******************************************************************************
  * FunctionName : i2c_master_setDC
  * Description  : Internal used function -
@@ -51,10 +57,12 @@ i2c_master_setDC(uint8 SDA, uint8 SCL)
         I2C_MASTER_SDA_LOW_SCL_LOW();
     } else if ((0 == SDA) && (1 == SCL)) {
         I2C_MASTER_SDA_LOW_SCL_HIGH();
+        I2C_MASTER_CLOCK_STRETCH_WAIT();
     } else if ((1 == SDA) && (0 == SCL)) {
         I2C_MASTER_SDA_HIGH_SCL_LOW();
     } else {
         I2C_MASTER_SDA_HIGH_SCL_HIGH();
+        I2C_MASTER_CLOCK_STRETCH_WAIT();
     }
 }
 
@@ -202,9 +210,6 @@ uint8 ICACHE_FLASH_ATTR
 i2c_master_getAck(void)
 {
     uint8 retVal;
-#ifdef I2C_MASTER_CLOCK_STRETCH
-    uint16 cs_limit = 0;
-#endif
 
     i2c_master_setDC(m_nLastSDA, 0);
     i2c_master_wait(5);
@@ -212,9 +217,6 @@ i2c_master_getAck(void)
     i2c_master_wait(5);
     i2c_master_setDC(1, 1);
     i2c_master_wait(5);
-#ifdef I2C_MASTER_CLOCK_STRETCH
-    while (GPIO_INPUT_GET(GPIO_ID_PIN(I2C_MASTER_SCL_GPIO)) == 0 && (cs_limit++) < I2C_MASTER_MAX_CLOCK_STRETCH) {};
-#endif
 
     retVal = i2c_master_getDC();
     i2c_master_wait(5);
