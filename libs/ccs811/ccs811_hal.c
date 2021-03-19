@@ -47,50 +47,22 @@ ccs811_i2c_read(uint8_t addr, uint8_t reg_addr, uint8_t* data_buf, uint8_t len) 
     }
     I2C_STOP(&status);
 
-
-    while (rd_bytes < len) {
-        I2C_START_READ(addr, &status);
-        if (!status) {
-            I2C_STOP(&status);
-            GPIO13_H;
-            return CCS811_ERR_I2C;
-        }
-
-        p_data = &data_buf[rd_bytes];
-        I2C_READ_BYTES(p_data, 2, &status);
-        if (!status) {
-            I2C_STOP(&status);
-            GPIO13_H;
-            return CCS811_ERR_I2C;
-        }
-
-        rd_bytes += 2;
-
+    I2C_START_READ(addr, &status);
+    if (!status) {
         I2C_STOP(&status);
+        GPIO13_H;
+        return CCS811_ERR_I2C;
     }
-
-    if ((len - rd_bytes) == 1) {
-        I2C_START_READ(addr, &status);
-        if (!status) {
-            I2C_STOP(&status);
-            GPIO13_H;
-            return CCS811_ERR_I2C;
-        }
-
-        p_data = &data_buf[rd_bytes];
-        I2C_READ_BYTE(p_data, &status);
-        if (!status) {
-            I2C_STOP(&status);
-            GPIO13_H;
-            return CCS811_ERR_I2C;
-        }
-
+    I2C_READ_BYTES(data_buf, len, &status);
+    if (!status) {
         I2C_STOP(&status);
+        GPIO13_H;
+        return CCS811_ERR_I2C;
     }
-
+    I2C_STOP(&status);
 
     GPIO13_H;
-    os_delay_us(125);
+    os_delay_us(50);
 
     return CCS811_OK;
 }
@@ -108,6 +80,7 @@ ccs811_i2c_write(uint8_t addr, uint8_t reg_addr, uint8_t *data_buf, uint8_t len)
     uint8_t status;
 
     GPIO13_L;
+    os_delay_us(50);
 
     I2C_START_WRITE(addr, &status);
     if (!status) {
@@ -135,7 +108,7 @@ ccs811_i2c_write(uint8_t addr, uint8_t reg_addr, uint8_t *data_buf, uint8_t len)
     I2C_STOP(&status);
 
     GPIO13_H;
-    os_delay_us(125);
+    os_delay_us(50);
 
     return CCS811_OK;
 }
