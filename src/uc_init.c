@@ -21,6 +21,10 @@
 #include "zmod4xxx/zmod4xxx_hal.h"
 #include "zmod4xxx/zmod4xxx_config.h"
 
+#include "ccs811/ccs811.h"
+#include "ccs811/ccs811_defs.h"
+#include "ccs811/ccs811_hal.h"
+
 
 status_t ICACHE_FLASH_ATTR
 uc_init_uart() {
@@ -90,10 +94,14 @@ uc_init_i2c() {
 }
 
 status_t ICACHE_FLASH_ATTR
-uc_init_sensors(zmod4xxx_dev_t* zmod_dev, iaq_2nd_gen_handle_t* iaq_2nd_handle) {
+uc_init_sensors(zmod4xxx_dev_t* zmod_dev, iaq_2nd_gen_handle_t* iaq_2nd_handle, ccs811_dev_t* ccs_dev) {
     int8_t zmod_result;
+    uint8_t css_status;
     uint8_t* p_prod_data = (uint8_t*)os_malloc(sizeof(uint8_t) * ZMOD4410_PROD_DATA_LEN);
 
+    ccs811_result_t css_result;
+
+    // ZMOD4410
     zmod4xxx_init_hw(zmod_dev);
     zmod_dev->i2c_addr  = ZMOD4410_I2C_ADDR;
     zmod_dev->pid       = ZMOD4410_PID;
@@ -129,6 +137,86 @@ uc_init_sensors(zmod4xxx_dev_t* zmod_dev, iaq_2nd_gen_handle_t* iaq_2nd_handle) 
     if (zmod_result) {
 #ifdef DEBUG_PRINT_MODE
         os_printf("ZMOD4410 measurement starting error [%d]!\n", zmod_result);
+#endif
+        return STA_ERR;
+    }
+
+    // CCS811
+    ccs_dev->i2c_addr = CCS811_I2C_ADDR_LOW;
+
+    css_result = ccs811_init_hw(ccs_dev);
+    if (css_result != CCS811_OK) {
+#ifdef DEBUG_PRINT_MODE
+        os_printf("CCS811 HW init error [%d]!\n", css_result);
+#endif
+        return STA_ERR;
+    }
+
+    css_result = ccs811_reset(ccs_dev);
+    if (css_result != CCS811_OK) {
+#ifdef DEBUG_PRINT_MODE
+        os_printf("CCS811 reset error [%d]!\n", css_result);
+#endif
+        return STA_ERR;
+    }
+
+    css_result = ccs811_get_sensor_info(ccs_dev);
+    if (css_result != CCS811_OK) {
+#ifdef DEBUG_PRINT_MODE
+        os_printf("CCS811 error loading sensor info [%d]!\n", css_result);
+#endif
+        return STA_ERR;
+    }
+
+    css_result = ccs811_get_status(ccs_dev, &css_status);
+    if (css_result != CCS811_OK) {
+#ifdef DEBUG_PRINT_MODE
+        os_printf("CCS811 error getting sensor status - A [%d]!\n", css_result);
+#endif
+        return STA_ERR;
+    } else if (!CCS811_STATUS_APP_VALID(css_status)) {
+#ifdef DEBUG_PRINT_MODE
+        os_printf("CCS811 error app not valid!\n");
+#endif
+        return STA_ERR;
+    }
+
+    os_printf("CCS811: hw_id=0x%02x, hw_version=0x%02x, fw_boot_version=0x%04x, fw_app_version=0x%04x\n",
+        ccs_dev->hw_id, ccs_dev->hw_version, ccs_dev->fw_boot_version, ccs_dev->fw_app_version);
+    os_printf("CCS811: FW_MODE=%s, APP_ERASE=%s, APP_VERIFY=%s, APP_VALID=%s, DATA_READY=%s, ERROR=%s\n",
+        CCS811_STATUS_FW_MODE(css_status) == 0 ? "BOOT" : "APP",
+        CCS811_STATUS_APP_ERASE(css_status) == 0 ? "NO" : "YES",
+        CCS811_STATUS_APP_VERIFY(css_status) == 0 ? "NO" : "YES",
+        CCS811_STATUS_APP_VALID(css_status) == 0 ? "NO" : "YES",
+        CCS811_STATUS_DATA_READY(css_status) == 0 ? "NO" : "YES",
+        CCS811_STATUS_ERROR(css_status) == 0 ? "NO" : "YES"
+    );
+
+    css_result = ccs811_app_start(ccs_dev);
+    if (css_result != CCS811_OK) {
+#ifdef DEBUG_PRINT_MODE
+        os_printf("CCS811 error starting APP [%d]!\n", css_result);
+#endif
+        return STA_ERR;
+    }
+
+    css_result = ccs811_get_status(ccs_dev, &css_status);
+    if (css_result != CCS811_OK) {
+#ifdef DEBUG_PRINT_MODE
+        os_printf("CCS811 error getting sensor status - B [%d]!\n", css_result);
+#endif
+        return STA_ERR;
+    } else if (CCS811_STATUS_FW_MODE(css_status) != 1) {
+#ifdef DEBUG_PRINT_MODE
+        os_printf("CCS811 APP FW not loaded!\n");
+#endif
+        return STA_ERR;
+    }
+
+    css_result = ccs811_set_meas_mode(ccs_dev, CCS811_DRIVE_MODE_10S, CCS811_INT_DISABLE, CCS811_INT_THRESH_OFF);
+    if (css_result != CCS811_OK) {
+#ifdef DEBUG_PRINT_MODE
+        os_printf("CCS811 error setting measurement mode [%d]!\n", css_result);
 #endif
         return STA_ERR;
     }

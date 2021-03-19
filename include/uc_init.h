@@ -28,6 +28,9 @@
 #include "zmod4xxx/iaq_2nd_gen.h"
 #include "zmod4xxx/zmod4xxx_types.h"
 
+#include "ccs811/ccs811_defs.h"
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
@@ -39,7 +42,7 @@ status_t uc_init_uart();
 status_t uc_init_wifi();
 status_t uc_init_gpio();
 status_t uc_init_i2c();
-status_t uc_init_sensors(zmod4xxx_dev_t* zmod_dev, iaq_2nd_gen_handle_t* iaq_2nd_handle);
+status_t uc_init_sensors(zmod4xxx_dev_t* zmod_dev, iaq_2nd_gen_handle_t* iaq_2nd_handle, ccs811_dev_t* ccs_dev);
 status_t uc_init_sntp();
 
 #ifdef __cplusplus
