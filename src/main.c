@@ -120,16 +120,19 @@ web_view(simple_http_server_request_info_t* p_data, size_t* p_data_size, uint16_
 
 static void ICACHE_FLASH_ATTR
 timer_send_data(void* args) {
-    char* http_data_buff = (char*)os_malloc(sizeof(char) * (F2C_CHAR_BUFF_SIZE * 8 + 55));
+    char* http_data_buff = (char*)os_malloc(sizeof(char) * (F2C_CHAR_BUFF_SIZE * 8 + 55*2));
     char* value_temp = (char*)os_malloc(sizeof(char) * F2C_CHAR_BUFF_SIZE);
     char* f2c_str;
 
     float zmod_eco2, zmod_etoh, zmod_iaq, zmod_tvoc, zmod_rcda;
     uint32_t scd30_temp, scd30_co2, scd30_rh;
+    uint16_t ccs_eco2, ccs_tvocs, ccs_raw;
 
     size_t print_len = 0;
 
     uint8_t send_en = 0;
+
+    simple_http_status_t http_status;
 
     if (value_temp == NULL || http_data_buff == NULL) {
         return;
@@ -186,14 +189,24 @@ timer_send_data(void* args) {
     }
 
     if (ccs811_data_valid) {
+        ccs_eco2  = ccs_data.eco2;
+        ccs_tvocs = ccs_data.tvoc;
+        ccs_raw   = ccs_data.raw_data;
+        send_en   = 1;
 
+        print_len += os_sprintf(http_data_buff + print_len, "ccs811 ");
+        print_len += os_sprintf(http_data_buff + print_len, "eco2=%u,", ccs_eco2);
+        print_len += os_sprintf(http_data_buff + print_len, "tvoc=%u,", ccs_tvocs);
+        print_len += os_sprintf(http_data_buff + print_len, "current=%u,", CCS811_RAW_DATA_CURRENT(ccs_raw));
+        print_len += os_sprintf(http_data_buff + print_len, "adc=%u", CCS811_RAW_DATA_ADC(ccs_raw));
+        print_len += os_sprintf(http_data_buff + print_len, "\n");
     }
 
     // os_printf("Free dyn mem = %lu\n", system_get_free_heap_size());
     if (send_en) {
-        simple_http_status_t a;
-        a = simple_http_request(INFLUX_URL, http_data_buff, NULL, "POST", NULL);
-        os_printf("Sending:\n%s\nResult = %d\n\n", http_data_buff, a);
+        http_status = simple_http_request(INFLUX_URL, http_data_buff, INFLUX_AUTH_HEADER"\r\n", "POST", NULL);
+        os_printf("Sending:\n%s\nResult = %d\n\n", http_data_buff, http_status);
+
         os_delay_us(2000);
         system_soft_wdt_feed();
     }
@@ -252,11 +265,12 @@ print_zmod_results() {
 static void ICACHE_FLASH_ATTR
 print_ccs_results() {
     os_printf("CCS811:\n");
-    os_printf("\teCO2: 0x%04x\n", ccs_data.eco2);
-    os_printf("\tTVOCs: 0x%04x\n", ccs_data.tvoc);
+    os_printf("\teCO2: %uppm [0x%04x]\n", ccs_data.eco2, ccs_data.eco2);
+    os_printf("\tTVOCs: %uppb [0x%04x]\n", ccs_data.tvoc, ccs_data.tvoc);
     os_printf("\tstatus: 0x%02x\n", ccs_data.status);
     os_printf("\terror_id: 0x%02x\n", ccs_data.error_id);
-    os_printf("\traw_data: 0x%04x\n", ccs_data.raw_data);
+    os_printf("\traw_data: current=%uuA ADC=%u [0x%04x]\n\n",
+        CCS811_RAW_DATA_CURRENT(ccs_data.raw_data), CCS811_RAW_DATA_ADC(ccs_data.raw_data), ccs_data.raw_data);
 }
 #endif /* PRINT_ON_MEASURE_ENABLE */
 
@@ -327,7 +341,7 @@ timer_func_ccs(void* args) {
     os_timer_disarm((os_timer_t*)&timer_ccs);
     system_soft_wdt_feed();
 
-    ccs811_data_valid = 1;
+    ccs811_data_valid = 0;
     result = read_ccs811(&ccs_dev, &ccs_data);
 
     if (result == SENSOR_READ_VALID) {
@@ -394,13 +408,12 @@ user_init() {
 
         os_timer_setfn((os_timer_t*)&timer_zmod, (os_timer_func_t *)timer_func_zmod, NULL);
         os_timer_arm((os_timer_t*)&timer_zmod, ZMOD_READ_INTERVAL, 1);
-        zmod4410_data_valid = 0;
 
         os_timer_setfn((os_timer_t*)&timer_ccs, (os_timer_func_t *)timer_func_ccs, NULL);
         os_timer_arm((os_timer_t*)&timer_ccs, CCS_READ_INTERVAL, 1);
 
         os_timer_setfn((os_timer_t*)&timer_logger, (os_timer_func_t *)timer_send_data, NULL);
-        // os_timer_arm((os_timer_t*)&timer_logger, SERVER_WRITE_INTERVAL, 1);
+        os_timer_arm((os_timer_t*)&timer_logger, SERVER_WRITE_INTERVAL, 1);
 
 #ifdef WEB_ENABLE
         create_basic_http_server(&web_conn, 80, web_view);

@@ -29,17 +29,20 @@
 // Sensors
 #define SCD30_READ_INTERVAL   3000
 #define ZMOD_READ_INTERVAL    1990
-#define CCS_READ_INTERVAL     10000
-#define SERVER_WRITE_INTERVAL 10000
+#define CCS_READ_INTERVAL     10101
+#define SERVER_WRITE_INTERVAL 10201
 
-#define PRINT_ON_MEASURE_ENABLE
+// #define PRINT_ON_MEASURE_ENABLE
 
 // Network
 #define SNTP_SERVERNAME_0 "0.es.pool.ntp.org"
 #define SNTP_SERVERNAME_1 "1.es.pool.ntp.org"
 #define SNTP_TIMEZONE     1
 
-#define INFLUX_URL ""
+// InfluxDB 2
+#define INFLUX_URL         "http://<db_url>/api/v2/write?org=<org>>&bucket=<bucket_name>&precision=s"
+#define INFLUX_TOKEN       ""
+#define INFLUX_AUTH_HEADER "Authorization: Token "INFLUX_TOKEN
 
 // Other
 #define USE_OPTIMIZE_PRINTF
