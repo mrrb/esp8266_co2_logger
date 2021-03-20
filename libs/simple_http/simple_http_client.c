@@ -206,7 +206,7 @@ request_connect_callback(void* arg) {
                            "%s\r\n",
                            p_info->request_method, p_info->path, HTTP_PROTO_VERSION,
                            p_info->hostname, p_info->port,
-                           data_headers, p_info->headers);
+                           p_info->headers, data_headers);
 
     if (p_info->secure) {
 		espconn_secure_send(p_conn, (uint8_t*)send_buff, total_len);
