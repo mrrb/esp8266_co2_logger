@@ -256,7 +256,7 @@ print_zmod_results() {
     txt_f2c = f2c((real32_t) iaq_results.tvoc, txt_buff);
     os_printf("\tTVOCs: %s mg/m^3\n", txt_f2c);
 
-    txt_f2c = f2c((real32_t) iaq_results.tvoc, txt_buff);
+    txt_f2c = f2c((real32_t) iaq_results.log_rcda, txt_buff);
     os_printf("\tlog_Rcda: %s logOhm\n\n", txt_f2c);
 
     os_free(txt_buff);
