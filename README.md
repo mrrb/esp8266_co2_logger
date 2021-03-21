@@ -6,6 +6,12 @@ Small system to compare the Sensirion [SCD30](https://www.sensirion.com/en/envir
 
 All the data is stored online using InfluxDB, I will try to post all the results in a future, for now:
 
+Blue -> CCS811
+
+Purple -> SCD30
+
+Orange -> ZMOD4410
+
 ![Board top view](img/influx_board_screenshot_1.png)
  [Raw data](export/2021-03-22-00-31_chronograf_data.csv)
 
