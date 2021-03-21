@@ -17,7 +17,7 @@
 #include "driver/uart.h"
 
 #include "zmod4xxx/zmod4xxx.h"
-#include "zmod4xxx/iaq_2nd_gen.h"
+#include "zmod4xxx/iaq_1st_gen.h"
 #include "zmod4xxx/zmod4xxx_hal.h"
 #include "zmod4xxx/zmod4xxx_config.h"
 
@@ -94,7 +94,7 @@ uc_init_i2c() {
 }
 
 status_t ICACHE_FLASH_ATTR
-uc_init_sensors(zmod4xxx_dev_t* zmod_dev, iaq_2nd_gen_handle_t* iaq_2nd_handle, ccs811_dev_t* ccs_dev) {
+uc_init_sensors(zmod4xxx_dev_t* zmod_dev, iaq_1st_gen_handle_t* iaq_1st_handle, ccs811_dev_t* ccs_dev) {
     int8_t zmod_result;
     uint8_t css_status;
     uint8_t* p_prod_data = (uint8_t*)os_malloc(sizeof(uint8_t) * ZMOD4410_PROD_DATA_LEN);
@@ -106,7 +106,7 @@ uc_init_sensors(zmod4xxx_dev_t* zmod_dev, iaq_2nd_gen_handle_t* iaq_2nd_handle, 
     zmod_dev->i2c_addr  = ZMOD4410_I2C_ADDR;
     zmod_dev->pid       = ZMOD4410_PID;
     zmod_dev->init_conf = &zmod_sensor_type[INIT];
-    zmod_dev->meas_conf = &zmod_sensor_type[MEASUREMENT];
+    zmod_dev->meas_conf = &zmod_sensor_type[ZMOD_CONF_TYPE];
     zmod_dev->prod_data = p_prod_data;
 
     zmod_result = zmod4xxx_read_sensor_info(zmod_dev);
@@ -125,7 +125,7 @@ uc_init_sensors(zmod4xxx_dev_t* zmod_dev, iaq_2nd_gen_handle_t* iaq_2nd_handle, 
         return STA_ERR;
     }
 
-    zmod_result = init_iaq_2nd_gen(iaq_2nd_handle);
+    zmod_result = init_iaq_1st_gen(iaq_1st_handle, zmod_dev, ZMOD4410_SAMPLE_PERIOD);
     if (zmod_result) {
 #ifdef DEBUG_PRINT_MODE
         os_printf("ZMOD4410 algorithm initializing error [%d]!\n", zmod_result);

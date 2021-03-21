@@ -1,7 +1,7 @@
 /**
  * \file zmod4xxx_config.h
  * \author Renesas Electronics Corporation
- * \brief Renesas ZMOD4410 IAQ 2nd gen provided config
+ * \brief Renesas ZMOD4410 IAQ 1st gen provided config
  * \version 2.1.2
  */
 
@@ -15,8 +15,19 @@
 extern "C" {
 #endif /* __cplusplus */
 
-#define INIT        0
-#define MEASUREMENT 1
+#define INIT       0
+#define CONTINUOUS 1
+#define LOW_POWER  2
+
+#define ZMOD_CONF_TYPE LOW_POWER
+
+#if defined ZMOD_CONF_TYPE && ZMOD_CONF_TYPE == CONTINUOUS
+#define ZMOD4410_SAMPLE_PERIOD 2
+#elif defined ZMOD_CONF_TYPE && ZMOD_CONF_TYPE == LOW_POWER
+#define ZMOD4410_SAMPLE_PERIOD 6
+#else
+#error Wrong Configuration Type
+#endif
 
 #define ZMOD4410_PID      0x2310
 #define ZMOD4410_I2C_ADDR 0x32
@@ -34,22 +45,22 @@ uint8_t data_set_4410i[] = {
     0x00, 0x00, 0x80, 0x40
 };
 
-uint8_t data_set_4410_iaq_2nd_gen[] = {
-    0x00, 0x50, 0xFF, 0x38,
-    0xFE, 0xD4, 0xFE, 0x70,
-    0xFE, 0x0C, 0xFD, 0xA8,
-    0xFD, 0x44, 0xFC, 0xE0,
-    0x00, 0x52, 0x02, 0x67,
-    0x00, 0xCD, 0x03, 0x34,
-    0x23, 0x03, 0xA3, 0x43,
-    0x00, 0x00, 0x06, 0x49,
-    0x06, 0x4A, 0x06, 0x4B,
-    0x06, 0x4C, 0x06, 0x4D,
-    0x06, 0x4E, 0x06, 0x97,
-    0x06, 0xD7, 0x06, 0x57,
-    0x06, 0x4E, 0x06, 0x4D,
-    0x06, 0x4C, 0x06, 0x4B,
-    0x06, 0x4A, 0x86, 0x59
+uint8_t data_set_4410_cont[] = {
+    0xFD, 0xA8,
+    0x20, 0x04, 0x20, 0x04,
+    0x03,
+    0x00, 0x00, 0x80, 0x08
+};
+
+uint8_t data_set_4410_lpow[] = {
+    0x00, 0x50, 0xFD, 0XA8,
+    0x00, 0xCD, 0x01, 0x9A, 0x03, 0x34,
+    0x23, 0x03,
+    0x00, 0x00, 0x0A, 0x41, 0x0A, 0x41,
+    0x00, 0x41, 0x00, 0x41, 0x00, 0x49,
+    0x00, 0x49, 0x00, 0x51, 0x00, 0x09,
+    0x00, 0x49, 0x00, 0x40, 0x00, 0x40,
+    0x00, 0x40, 0x80, 0x40
 };
 
 zmod4xxx_conf zmod_sensor_type[] = {
@@ -62,15 +73,24 @@ zmod4xxx_conf zmod_sensor_type[] = {
         .r = { .addr = 0x97, .len = 4},
     },
 
-    [MEASUREMENT] = {
-        .start = 0x80,
-        .h = { .addr = ZMOD4410_H_ADDR, .len = 16, .data_buf = &data_set_4410_iaq_2nd_gen[0]},
-        .d = { .addr = ZMOD4410_D_ADDR, .len = 8,  .data_buf = &data_set_4410_iaq_2nd_gen[16]},
-        .m = { .addr = ZMOD4410_M_ADDR, .len = 4,  .data_buf = &data_set_4410_iaq_2nd_gen[24]},
-        .s = { .addr = ZMOD4410_S_ADDR, .len = 32, .data_buf = &data_set_4410_iaq_2nd_gen[28]},
-        .r = { .addr = 0x97, .len = 32},
+    [CONTINUOUS] = {
+        .start = 0xC0,
+        .h = {.addr = ZMOD4410_H_ADDR, .len = 2, .data_buf = &data_set_4410_cont[0]},
+        .d = {.addr = ZMOD4410_D_ADDR, .len = 4, .data_buf = &data_set_4410_cont[2]},
+        .m = {.addr = ZMOD4410_M_ADDR, .len = 1, .data_buf = &data_set_4410_cont[6]},
+        .s = {.addr = ZMOD4410_S_ADDR, .len = 4, .data_buf = &data_set_4410_cont[7]},
+        .r = {.addr = 0x99, .len = 2},
         .prod_data_len = ZMOD4410_PROD_DATA_LEN,
     },
+    [LOW_POWER] = {
+        .start = 0x80,
+        .h = {.addr = ZMOD4410_H_ADDR, .len = 4,  .data_buf = &data_set_4410_lpow[0]},
+        .d = {.addr = ZMOD4410_D_ADDR, .len = 6,  .data_buf = &data_set_4410_lpow[4]},
+        .m = {.addr = ZMOD4410_M_ADDR, .len = 2,  .data_buf = &data_set_4410_lpow[10]},
+        .s = {.addr = ZMOD4410_S_ADDR, .len = 28, .data_buf = &data_set_4410_lpow[12]},
+        .r = {.addr = 0xA9, .len = 2},
+        .prod_data_len = ZMOD4410_PROD_DATA_LEN,
+    }
 };
 
 #ifdef __cplusplus

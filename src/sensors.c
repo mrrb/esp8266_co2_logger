@@ -14,7 +14,7 @@
 
 #include "zmod4xxx/zmod4xxx.h"
 #include "zmod4xxx/zmod4xxx_types.h"
-#include "zmod4xxx/iaq_2nd_gen.h"
+#include "zmod4xxx/iaq_1st_gen.h"
 
 #include "ccs811/ccs811.h"
 #include "ccs811/ccs811_defs.h"
@@ -44,7 +44,7 @@ read_scd30(scd30_result_t* p_result) {
 }
 
 sensor_status_t ICACHE_FLASH_ATTR
-read_zmod(zmod4xxx_dev_t* p_zmod_dev, iaq_2nd_gen_handle_t* p_iaq_handle, iaq_2nd_gen_results_t* p_iaq_results) {
+read_zmod(zmod4xxx_dev_t* p_zmod_dev, iaq_1st_gen_handle_t* p_iaq_handle, iaq_1st_gen_results_t* p_iaq_results) {
     int8_t zmod_result;
     uint8_t status;
 
@@ -81,10 +81,10 @@ read_zmod(zmod4xxx_dev_t* p_zmod_dev, iaq_2nd_gen_handle_t* p_iaq_handle, iaq_2n
         return SENSOR_ZMOD_ADC_ERROR;
     }
 
-    zmod_result = calc_iaq_2nd_gen(p_iaq_handle, p_zmod_dev, adc_result, p_iaq_results);
-    if (zmod_result == IAQ_2ND_GEN_STABILIZATION) {
+    zmod_result = calc_iaq_1st_gen(p_iaq_handle, p_zmod_dev, adc_result, p_iaq_results);
+    if (zmod_result == IAQ_1ST_GEN_STABILIZATION) {
         return SENSOR_ZMOD_STABILIZATION;
-    } else if (zmod_result == IAQ_2ND_GEN_OK) {
+    } else if (zmod_result == IAQ_1ST_GEN_OK) {
         return SENSOR_READ_VALID;
     } else {
         return SENSOR_ZMOD_ALG_ERROR;

@@ -21,7 +21,7 @@
 
 #include "f2c/f2c.h"
 
-#include "zmod4xxx/iaq_2nd_gen.h"
+#include "zmod4xxx/iaq_1st_gen.h"
 #include "zmod4xxx/zmod4xxx_types.h"
 
 #include "simple_http/simple_http.h"
@@ -31,8 +31,8 @@
 
 
 static zmod4xxx_dev_t zmod_dev;
-static iaq_2nd_gen_handle_t iaq_handle;
-static iaq_2nd_gen_results_t iaq_results;
+static iaq_1st_gen_handle_t iaq_handle;
+static iaq_1st_gen_results_t iaq_results;
 
 static scd30_result_t scd30_result;
 
@@ -120,11 +120,11 @@ web_view(simple_http_server_request_info_t* p_data, size_t* p_data_size, uint16_
 
 static void ICACHE_FLASH_ATTR
 timer_send_data(void* args) {
-    char* http_data_buff = (char*)os_malloc(sizeof(char) * (F2C_CHAR_BUFF_SIZE * 8 + 55*2));
+    char* http_data_buff = (char*)os_malloc(sizeof(char) * (F2C_CHAR_BUFF_SIZE * 9 + 55*2));
     char* value_temp = (char*)os_malloc(sizeof(char) * F2C_CHAR_BUFF_SIZE);
     char* f2c_str;
 
-    float zmod_eco2, zmod_etoh, zmod_iaq, zmod_tvoc, zmod_rcda;
+    float zmod_rcda, zmod_rmox, zmod_iaq, zmod_tvoc, zmod_etoh, zmod_eco2;
     uint32_t scd30_temp, scd30_co2, scd30_rh;
     uint16_t ccs_eco2, ccs_tvocs, ccs_raw;
 
@@ -143,9 +143,10 @@ timer_send_data(void* args) {
     if (zmod4410_data_valid) {
         zmod_eco2 = iaq_results.eco2;
         zmod_etoh = iaq_results.etoh;
-        zmod_tvoc = iaq_results.tvoc;
-        zmod_rcda = iaq_results.log_rcda;
+        zmod_rcda = iaq_results.rcda;
         zmod_iaq  = iaq_results.iaq;
+        zmod_tvoc = iaq_results.tvoc;
+        zmod_rmox = iaq_results.rmox;
         send_en   = 1;
 
         print_len += os_sprintf(http_data_buff + print_len, "zmod ");
@@ -163,7 +164,10 @@ timer_send_data(void* args) {
         print_len += os_sprintf(http_data_buff + print_len, "iaq=%s,", f2c_str);
 
         f2c_str = f2c(zmod_tvoc, value_temp);
-        print_len += os_sprintf(http_data_buff + print_len, "tvoc=%s", f2c_str);
+        print_len += os_sprintf(http_data_buff + print_len, "tvoc=%s,", f2c_str);
+
+        f2c_str = f2c(zmod_rmox, value_temp);
+        print_len += os_sprintf(http_data_buff + print_len, "rmox=%s", f2c_str);
 
         print_len += os_sprintf(http_data_buff + print_len, "\n");
     }
@@ -256,8 +260,11 @@ print_zmod_results() {
     txt_f2c = f2c((real32_t) iaq_results.tvoc, txt_buff);
     os_printf("\tTVOCs: %s mg/m^3\n", txt_f2c);
 
-    txt_f2c = f2c((real32_t) iaq_results.tvoc, txt_buff);
-    os_printf("\tlog_Rcda: %s logOhm\n\n", txt_f2c);
+    txt_f2c = f2c((real32_t) iaq_results.rcda, txt_buff);
+    os_printf("\trcda: %s logOhm\n\n", txt_f2c);
+
+    txt_f2c = f2c((real32_t) iaq_results.rmox, txt_buff);
+    os_printf("\tRMOX: %s logOhm\n\n", txt_f2c);
 
     os_free(txt_buff);
 }

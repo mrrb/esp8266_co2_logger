@@ -31,7 +31,7 @@ CFLAGS += -Og -ggdb
 LDFLAGS = -Teagle.app.v6.ld
 LDLIBS  = -nostdlib -Wl,--start-group
 LDLIBS += -lmain -lnet80211 -lwpa -llwip -lpp -lphy -lc -lgcc -lm -lssl
-LDLIBS += -L"$(shell pwd)/libs/zmod4xxx" -l_iaq_2nd_gen
+LDLIBS += -L"$(shell pwd)/libs/zmod4xxx" -l_iaq_1st_gen
 LDLIBS += -Wl,--end-group
 
 #

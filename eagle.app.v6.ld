@@ -175,9 +175,9 @@ SECTIONS
 
     *(.irom0.literal .irom.literal .irom.text.literal .irom0.text .irom.text)
 
-    *lib_iaq_2nd_gen.a:(.text .text* .literal .literal*)
+    *lib_iaq_1st_gen.a:(.text .text* .literal .literal*)
     *lib_zmod4xxx_cleaning.a:(.text .text* .literal .literal*)
-    /* *lib_iaq_2nd_gen.a:(.text .text* .rodata .rodata* .literal .literal*)
+    /* *lib_iaq_1st_gen.a:(.text .text* .rodata .rodata* .literal .literal*)
     *lib_zmod4xxx_cleaning.a:(.text .text* .rodata .rodata* .literal .literal*) */
 
     _irom0_text_end = ABSOLUTE(.);
@@ -188,7 +188,7 @@ SECTIONS
     _stext = .;
     _text_start = ABSOLUTE(.);
 
-    /* *(EXCLUDE_FILE(*lib_iaq_2nd_gen.a).text* .rodata .rodata* .constdata .constdata* .literal .literal*)
+    /* *(EXCLUDE_FILE(*lib_iaq_1st_gen.a).text* .rodata .rodata* .constdata .constdata* .literal .literal*)
     *(EXCLUDE_FILE(*lib_zmod4xxx_cleaning.a).text* .rodata .rodata* .constdata .constdata* .literal .literal*) */
     /* PROVIDE(c_function = C_function_); */
 
