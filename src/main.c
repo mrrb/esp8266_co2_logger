@@ -261,10 +261,10 @@ print_zmod_results() {
     os_printf("\tTVOCs: %s mg/m^3\n", txt_f2c);
 
     txt_f2c = f2c((real32_t) iaq_results.rcda, txt_buff);
-    os_printf("\trcda: %s logOhm\n\n", txt_f2c);
+    os_printf("\tRCDA: %s ohm\n", txt_f2c);
 
     txt_f2c = f2c((real32_t) iaq_results.rmox, txt_buff);
-    os_printf("\tRMOX: %s logOhm\n\n", txt_f2c);
+    os_printf("\tRMOX: %s ohm\n\n", txt_f2c);
 
     os_free(txt_buff);
 }
