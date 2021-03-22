@@ -4,6 +4,8 @@ Small system to compare the Sensirion [SCD30](https://www.sensirion.com/en/envir
 
 ## Results
 
+[Public Grafana dashboard](https://data.mrrb.xyz/grafana/d/DU029oQGk/)
+
 **TODO**
 
 Notes:
