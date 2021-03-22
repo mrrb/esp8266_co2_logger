@@ -4,6 +4,8 @@ Small system to compare the Sensirion [SCD30](https://www.sensirion.com/en/envir
 
 ## Results
 
+[Public Grafana dashboard](https://data.mrrb.xyz/grafana/d/DU029oQGk/)
+
 All the data (2 days for this test) is stored online using InfluxDB.
 
 Blue -> CCS811; Purple -> SCD30; Orange -> ZMOD4410
