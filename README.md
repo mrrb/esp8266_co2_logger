@@ -16,7 +16,7 @@ Notes:
  * CCS811 with a fixed period of 10s.
  * CCS811 NOT using temp&rh compensation.
 
-There are another branches with other tests.
+There are another branch with other tests.
 
 ## Test board
 
