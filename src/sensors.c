@@ -44,7 +44,23 @@ read_scd30(scd30_result_t* p_result) {
 }
 
 sensor_status_t ICACHE_FLASH_ATTR
-read_zmod(zmod4xxx_dev_t* p_zmod_dev, iaq_1st_gen_handle_t* p_iaq_handle, iaq_1st_gen_results_t* p_iaq_results) {
+calc_zmod_result(zmod4xxx_dev_t* p_zmod_dev, iaq_1st_gen_handle_t* p_iaq_handle, iaq_1st_gen_results_t* p_iaq_results, uint8_t* adc_result) {
+    int8_t zmod_result;
+
+    zmod_result = calc_iaq_1st_gen(p_iaq_handle, p_zmod_dev, adc_result, p_iaq_results);
+    if (zmod_result == IAQ_1ST_GEN_STABILIZATION) {
+        return SENSOR_ZMOD_STABILIZATION;
+    } else if (zmod_result == IAQ_1ST_GEN_OK) {
+        return SENSOR_READ_VALID;
+    } else {
+        return SENSOR_ZMOD_ALG_ERROR;
+    }
+
+    return SENSOR_ERR;
+}
+
+sensor_status_t ICACHE_FLASH_ATTR
+read_zmod(zmod4xxx_dev_t* p_zmod_dev, iaq_1st_gen_handle_t* p_iaq_handle, iaq_1st_gen_results_t* p_iaq_results, uint8_t* adc_result) {
     int8_t zmod_result;
     uint8_t status;
 
@@ -52,7 +68,9 @@ read_zmod(zmod4xxx_dev_t* p_zmod_dev, iaq_1st_gen_handle_t* p_iaq_handle, iaq_1s
     uint8_t s_step_last = 0;
     uint8_t s_step_new = 0;
 
-    uint8_t adc_result[32] = {0};
+    // uint8_t adc_result[32] = {0};
+    memset(adc_result, 0, SENSORS_ADC_RESULT_SIZE);
+
 
     zmod_result = zmod4xxx_start_measurement(p_zmod_dev);
     if (zmod_result) {
@@ -81,16 +99,7 @@ read_zmod(zmod4xxx_dev_t* p_zmod_dev, iaq_1st_gen_handle_t* p_iaq_handle, iaq_1s
         return SENSOR_ZMOD_ADC_ERROR;
     }
 
-    zmod_result = calc_iaq_1st_gen(p_iaq_handle, p_zmod_dev, adc_result, p_iaq_results);
-    if (zmod_result == IAQ_1ST_GEN_STABILIZATION) {
-        return SENSOR_ZMOD_STABILIZATION;
-    } else if (zmod_result == IAQ_1ST_GEN_OK) {
-        return SENSOR_READ_VALID;
-    } else {
-        return SENSOR_ZMOD_ALG_ERROR;
-    }
-
-    return SENSOR_READ_ERROR;
+    return calc_zmod_result(p_zmod_dev, p_iaq_handle, p_iaq_results, adc_result);
 }
 
 sensor_status_t ICACHE_FLASH_ATTR

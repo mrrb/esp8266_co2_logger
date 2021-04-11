@@ -17,6 +17,8 @@
 #include "ccs811/ccs811_defs.h"
 
 
+#define SENSORS_ADC_RESULT_SIZE 32
+
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
@@ -44,10 +46,12 @@ typedef enum sensor_status {
     SENSOR_ZMOD_ALG_ERROR,
     SENSOR_ZMOD_STABILIZATION,
     SENSOR_ZMOD_START_MEASUREMENT_ERROR,
+    SENSOR_ERR,
 } sensor_status_t;
 
 sensor_status_t read_scd30(scd30_result_t* p_result);
-sensor_status_t read_zmod(zmod4xxx_dev_t* p_zmod_dev, iaq_1st_gen_handle_t* p_iaq_handle, iaq_1st_gen_results_t* p_iaq_results);
+sensor_status_t calc_zmod_result(zmod4xxx_dev_t* p_zmod_dev, iaq_1st_gen_handle_t* p_iaq_handle, iaq_1st_gen_results_t* p_iaq_results, uint8_t* adc_result);
+sensor_status_t read_zmod(zmod4xxx_dev_t* p_zmod_dev, iaq_1st_gen_handle_t* p_iaq_handle, iaq_1st_gen_results_t* p_iaq_results, uint8_t* adc_result);
 sensor_status_t read_ccs811(ccs811_dev_t* p_ccs_dev, ccs811_data_t* p_result);
 
 #ifdef __cplusplus
