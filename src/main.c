@@ -31,21 +31,33 @@
 
 
 static zmod4xxx_dev_t zmod_dev;
-static iaq_1st_gen_handle_t iaq_handle;
+static uint8_t zmod_adc_result[SENSORS_ADC_RESULT_SIZE];
+
+static iaq_1st_gen_handle_t  iaq_handle;
 static iaq_1st_gen_results_t iaq_results;
+
+static iaq_1st_gen_handle_t  iaq_handle_test_reset;
+static iaq_1st_gen_results_t iaq_results_test_reset;
+
+static iaq_1st_gen_handle_t  iaq_handle_test_halt;
+static iaq_1st_gen_results_t iaq_results_test_halt;
+
+uint16_t zmod_reset_counter, zmod_halt_counter;
 
 static scd30_result_t scd30_result;
 
 static ccs811_data_t ccs_data;
 static ccs811_dev_t ccs_dev;
 
-static uint8_t zmod4410_data_valid;
+static uint8_t zmod4410_data_valid, zmod4410_data_valid_reset, zmod4410_data_valid_halt;
 static uint8_t ccs811_data_valid;
 static uint8_t scd30_data_valid;
 
 static volatile os_timer_t timer_blink;
 static volatile os_timer_t timer_scd30;
 static volatile os_timer_t timer_zmod;
+static volatile os_timer_t timer_zmod_reset;
+static volatile os_timer_t timer_zmod_halt;
 static volatile os_timer_t timer_ccs;
 
 static volatile os_timer_t timer_logger;
@@ -118,13 +130,51 @@ web_view(simple_http_server_request_info_t* p_data, size_t* p_data_size, uint16_
 }
 #endif /* WEB_ENABLE */
 
+static size_t ICACHE_FLASH_ATTR
+zmod_sprintf(char* name, iaq_1st_gen_results_t* zmod_results, size_t print_len, char* http_data_buff, char* value_temp) {
+    char* f2c_str;
+    float zmod_rcda, zmod_rmox, zmod_iaq, zmod_tvoc, zmod_etoh, zmod_eco2;
+
+    size_t int_print_len = print_len;
+
+    zmod_eco2 = zmod_results->eco2;
+    zmod_etoh = zmod_results->etoh;
+    zmod_rcda = zmod_results->rcda;
+    zmod_iaq  = zmod_results->iaq;
+    zmod_tvoc = zmod_results->tvoc;
+    zmod_rmox = zmod_results->rmox;
+
+    int_print_len += os_sprintf(http_data_buff + int_print_len, "%s ", name);
+
+    f2c_str = f2c(zmod_eco2, value_temp);
+    int_print_len += os_sprintf(http_data_buff + int_print_len, "eco2=%s,", f2c_str);
+
+    f2c_str = f2c(zmod_etoh, value_temp);
+    int_print_len += os_sprintf(http_data_buff + int_print_len, "etoh=%s,", f2c_str);
+
+    f2c_str = f2c(zmod_rcda, value_temp);
+    int_print_len += os_sprintf(http_data_buff + int_print_len, "rcda=%s,", f2c_str);
+
+    f2c_str = f2c(zmod_iaq, value_temp);
+    int_print_len += os_sprintf(http_data_buff + int_print_len, "iaq=%s,", f2c_str);
+
+    f2c_str = f2c(zmod_tvoc, value_temp);
+    int_print_len += os_sprintf(http_data_buff + int_print_len, "tvoc=%s,", f2c_str);
+
+    f2c_str = f2c(zmod_rmox, value_temp);
+    int_print_len += os_sprintf(http_data_buff + int_print_len, "rmox=%s", f2c_str);
+
+    int_print_len += os_sprintf(http_data_buff + int_print_len, "\n");
+
+    return int_print_len;
+}
+
 static void ICACHE_FLASH_ATTR
 timer_send_data(void* args) {
-    char* http_data_buff = (char*)os_malloc(sizeof(char) * (F2C_CHAR_BUFF_SIZE * 9 + 55*2));
+    char* http_data_buff = (char*)os_malloc(sizeof(char) * (F2C_CHAR_BUFF_SIZE * 25 + 55*4));
     char* value_temp = (char*)os_malloc(sizeof(char) * F2C_CHAR_BUFF_SIZE);
     char* f2c_str;
 
-    float zmod_rcda, zmod_rmox, zmod_iaq, zmod_tvoc, zmod_etoh, zmod_eco2;
     uint32_t scd30_temp, scd30_co2, scd30_rh;
     uint16_t ccs_eco2, ccs_tvocs, ccs_raw;
 
@@ -138,38 +188,21 @@ timer_send_data(void* args) {
         return;
     }
 
-    os_timer_disarm((os_timer_t*) &timer_logger);
+    // os_timer_disarm((os_timer_t*) &timer_logger);
 
     if (zmod4410_data_valid) {
-        zmod_eco2 = iaq_results.eco2;
-        zmod_etoh = iaq_results.etoh;
-        zmod_rcda = iaq_results.rcda;
-        zmod_iaq  = iaq_results.iaq;
-        zmod_tvoc = iaq_results.tvoc;
-        zmod_rmox = iaq_results.rmox;
-        send_en   = 1;
+        print_len = zmod_sprintf("zmod", &iaq_results, print_len, http_data_buff, value_temp);
+        send_en = 1;
+    }
 
-        print_len += os_sprintf(http_data_buff + print_len, "zmod ");
+    if (zmod4410_data_valid_reset) {
+        print_len = zmod_sprintf("zmod_reset", &iaq_results_test_reset, print_len, http_data_buff, value_temp);
+        send_en = 1;
+    }
 
-        f2c_str = f2c(zmod_eco2, value_temp);
-        print_len += os_sprintf(http_data_buff + print_len, "eco2=%s,", f2c_str);
-
-        f2c_str = f2c(zmod_etoh, value_temp);
-        print_len += os_sprintf(http_data_buff + print_len, "etoh=%s,", f2c_str);
-
-        f2c_str = f2c(zmod_rcda, value_temp);
-        print_len += os_sprintf(http_data_buff + print_len, "rcda=%s,", f2c_str);
-
-        f2c_str = f2c(zmod_iaq, value_temp);
-        print_len += os_sprintf(http_data_buff + print_len, "iaq=%s,", f2c_str);
-
-        f2c_str = f2c(zmod_tvoc, value_temp);
-        print_len += os_sprintf(http_data_buff + print_len, "tvoc=%s,", f2c_str);
-
-        f2c_str = f2c(zmod_rmox, value_temp);
-        print_len += os_sprintf(http_data_buff + print_len, "rmox=%s", f2c_str);
-
-        print_len += os_sprintf(http_data_buff + print_len, "\n");
+    if (zmod4410_data_valid_halt) {
+        print_len = zmod_sprintf("zmod_halt", &iaq_results_test_halt, print_len, http_data_buff, value_temp);
+        send_en = 1;
     }
 
     if (scd30_data_valid) {
@@ -218,7 +251,7 @@ timer_send_data(void* args) {
     os_free(http_data_buff);
     os_free(value_temp);
 
-    os_timer_arm((os_timer_t*)&timer_logger, SERVER_WRITE_INTERVAL, 1);
+    os_timer_arm((os_timer_t*)&timer_logger, SERVER_WRITE_INTERVAL, 0);
 }
 
 #ifdef PRINT_ON_MEASURE_ENABLE
@@ -242,31 +275,36 @@ print_scd30_results() {
 }
 
 static void ICACHE_FLASH_ATTR
-print_zmod_results() {
+print_zmod_param_results(iaq_1st_gen_results_t* iaq_results) {
     char* txt_buff = os_zalloc(sizeof(char) * F2C_CHAR_BUFF_SIZE);
     char* txt_f2c;
 
     os_printf("ZMOD4410:\n");
 
-    txt_f2c = f2c((real32_t) iaq_results.eco2, txt_buff);
+    txt_f2c = f2c((real32_t) iaq_results->eco2, txt_buff);
     os_printf("\teCO2: %s ppm\n", txt_f2c);
 
-    txt_f2c = f2c((real32_t) iaq_results.etoh, txt_buff);
+    txt_f2c = f2c((real32_t) iaq_results->etoh, txt_buff);
     os_printf("\teTOH: %s ppm\n", txt_f2c);
 
-    txt_f2c = f2c((real32_t) iaq_results.iaq, txt_buff);
+    txt_f2c = f2c((real32_t) iaq_results->iaq, txt_buff);
     os_printf("\tIAQ: %s\n", txt_f2c);
 
-    txt_f2c = f2c((real32_t) iaq_results.tvoc, txt_buff);
+    txt_f2c = f2c((real32_t) iaq_results->tvoc, txt_buff);
     os_printf("\tTVOCs: %s mg/m^3\n", txt_f2c);
 
-    txt_f2c = f2c((real32_t) iaq_results.rcda, txt_buff);
+    txt_f2c = f2c((real32_t) iaq_results->rcda, txt_buff);
     os_printf("\tRCDA: %s ohm\n", txt_f2c);
 
-    txt_f2c = f2c((real32_t) iaq_results.rmox, txt_buff);
+    txt_f2c = f2c((real32_t) iaq_results->rmox, txt_buff);
     os_printf("\tRMOX: %s ohm\n\n", txt_f2c);
 
     os_free(txt_buff);
+}
+
+static void ICACHE_FLASH_ATTR
+print_zmod_results() {
+    print_zmod_param_results(&iaq_results);
 }
 
 static void ICACHE_FLASH_ATTR
@@ -314,17 +352,33 @@ timer_func_scd30(void* args) {
 }
 
 void ICACHE_FLASH_ATTR
+timer_func_zmod_reset_end(void* args) {
+    os_timer_disarm((os_timer_t*)&timer_zmod_reset);
+    memset(&iaq_handle_test_reset, 0, sizeof(iaq_handle_test_reset));
+    uc_init_zmod_test(&zmod_dev, &iaq_handle_test_reset);
+    zmod_reset_counter = 0;
+}
+
+void ICACHE_FLASH_ATTR
+timer_func_zmod_halt_end(void* args) {
+    os_timer_disarm((os_timer_t*)&timer_zmod_halt);
+    zmod_halt_counter = 0;
+}
+
+void ICACHE_FLASH_ATTR
 timer_func_zmod(void* args) {
     sensor_status_t result;
 
     os_timer_disarm((os_timer_t*)&timer_zmod);
     system_soft_wdt_feed();
 
+    // LP continuous mode
     zmod4410_data_valid = 0;
-    result = read_zmod(&zmod_dev, &iaq_handle, &iaq_results);
+    result = read_zmod(&zmod_dev, &iaq_handle, &iaq_results, zmod_adc_result);
 
     if (result == SENSOR_READ_VALID) {
 #ifdef PRINT_ON_MEASURE_ENABLE
+        os_printf("## iaq_results ##\n");
         print_zmod_results();
 #endif
         zmod4410_data_valid = 1;
@@ -338,7 +392,67 @@ timer_func_zmod(void* args) {
 #endif
     }
 
-    os_timer_arm((os_timer_t*)&timer_zmod, ZMOD_READ_INTERVAL, 1);
+    // LP mode with halt and reset
+    zmod4410_data_valid_reset = 0;
+    if (zmod_reset_counter == ZMOD_TEST_RESET_COUNT) {
+        os_timer_arm((os_timer_t*)&timer_zmod_reset, ZMOD_TEST_RESET_DELAY, 0);
+        zmod_reset_counter += 1;
+    } else if (zmod_reset_counter < ZMOD_TEST_RESET_COUNT) {
+        result = calc_zmod_result(&zmod_dev, &iaq_handle_test_reset, &iaq_results_test_reset, zmod_adc_result);
+
+        if (result == SENSOR_READ_VALID) {
+#ifdef PRINT_ON_MEASURE_ENABLE
+            os_printf("## iaq_results_test_reset ##\n");
+            print_zmod_param_results(&iaq_results_test_reset);
+#endif
+            zmod_reset_counter += 1;
+            zmod4410_data_valid_reset = 1;
+        } else if (result == SENSOR_ZMOD_STABILIZATION) {
+#ifdef PRINT_ON_MEASURE_ENABLE
+            os_printf("ZMOD [w/ reset] stabilization process!\n");
+#endif
+        } else {
+#ifdef PRINT_ON_MEASURE_ENABLE
+            os_printf("ZMOD [w/ reset] critical error %d\n", result);
+#endif
+        }
+    } else {
+#ifdef PRINT_ON_MEASURE_ENABLE
+        os_printf("ZMOD [w/ reset] delay");
+#endif
+    }
+
+    // LP mode with halt
+    zmod4410_data_valid_halt = 0;
+    if (zmod_halt_counter == ZMOD_TEST_HALT_COUNT) {
+        os_timer_arm((os_timer_t*)&timer_zmod_halt, ZMOD_TEST_HALT_DELAY, 0);
+        zmod_halt_counter += 1;
+    } else if (zmod_halt_counter < ZMOD_TEST_HALT_COUNT) {
+        result = calc_zmod_result(&zmod_dev, &iaq_handle_test_halt, &iaq_results_test_halt, zmod_adc_result);
+
+        if (result == SENSOR_READ_VALID) {
+#ifdef PRINT_ON_MEASURE_ENABLE
+            os_printf("## iaq_results_test_halt ##\n");
+            print_zmod_param_results(&iaq_results_test_halt);
+#endif
+            zmod_halt_counter += 1;
+            zmod4410_data_valid_halt = 1;
+        } else if (result == SENSOR_ZMOD_STABILIZATION) {
+#ifdef PRINT_ON_MEASURE_ENABLE
+            os_printf("ZMOD [w/ halt] stabilization process!\n");
+#endif
+        } else {
+#ifdef PRINT_ON_MEASURE_ENABLE
+            os_printf("ZMOD [w/ halt] critical error %d\n", result);
+#endif
+        }
+    } else {
+#ifdef PRINT_ON_MEASURE_ENABLE
+        os_printf("ZMOD [w/ halt] delay");
+#endif
+    }
+
+    os_timer_arm((os_timer_t*)&timer_zmod, ZMOD_READ_INTERVAL, 0);
 }
 
 void ICACHE_FLASH_ATTR
@@ -366,7 +480,7 @@ timer_func_ccs(void* args) {
 #endif
     }
 
-    os_timer_arm((os_timer_t*)&timer_ccs, CCS_READ_INTERVAL, 1);
+    os_timer_arm((os_timer_t*)&timer_ccs, CCS_READ_INTERVAL, 0);
 }
 
 void ICACHE_FLASH_ATTR
@@ -386,6 +500,8 @@ user_init() {
     status = uc_init_i2c();
     status = uc_init_sntp();
     status = uc_init_sensors(&zmod_dev, &iaq_handle, &ccs_dev);
+    status = uc_init_zmod_test(&zmod_dev, &iaq_handle_test_reset);
+    status = uc_init_zmod_test(&zmod_dev, &iaq_handle_test_halt);
 
     if (status != STA_OK) {
 #ifdef DEBUG_PRINT_MODE
@@ -399,13 +515,14 @@ user_init() {
 #ifdef DEBUG_PRINT_MODE
         os_printf("Init done!\n");
 #endif
-
-        read_zmod(&zmod_dev, &iaq_handle, &iaq_results);
+        zmod_reset_counter = 0;
+        zmod_halt_counter = 0;
+        read_zmod(&zmod_dev, &iaq_handle, &iaq_results, zmod_adc_result);
 
         // Timers
         os_timer_setfn((os_timer_t*)&timer_blink, (os_timer_func_t *)timer_func_blink, NULL);
 #ifdef STATUS_LED_ENABLE
-        os_timer_arm((os_timer_t*)&timer_blink, STATUS_LED_TIME_ON, 1);
+        os_timer_arm((os_timer_t*)&timer_blink, STATUS_LED_TIME_ON, 0);
 #else
         GPIO2_H;
 #endif /* STATUS_LED_ENABLE */
@@ -414,13 +531,17 @@ user_init() {
         os_timer_arm((os_timer_t*)&timer_scd30, SCD30_READ_INTERVAL, 1);
 
         os_timer_setfn((os_timer_t*)&timer_zmod, (os_timer_func_t *)timer_func_zmod, NULL);
-        os_timer_arm((os_timer_t*)&timer_zmod, ZMOD_READ_INTERVAL, 1);
+        os_timer_arm((os_timer_t*)&timer_zmod, ZMOD_READ_INTERVAL, 0);
+
+        os_timer_setfn((os_timer_t*)&timer_zmod_reset, (os_timer_func_t *)timer_func_zmod_reset_end, NULL);
+
+        os_timer_setfn((os_timer_t*)&timer_zmod_halt, (os_timer_func_t *)timer_func_zmod_halt_end, NULL);
 
         os_timer_setfn((os_timer_t*)&timer_ccs, (os_timer_func_t *)timer_func_ccs, NULL);
-        os_timer_arm((os_timer_t*)&timer_ccs, CCS_READ_INTERVAL, 1);
+        os_timer_arm((os_timer_t*)&timer_ccs, CCS_READ_INTERVAL, 0);
 
         os_timer_setfn((os_timer_t*)&timer_logger, (os_timer_func_t *)timer_send_data, NULL);
-        os_timer_arm((os_timer_t*)&timer_logger, SERVER_WRITE_INTERVAL, 1);
+        os_timer_arm((os_timer_t*)&timer_logger, SERVER_WRITE_INTERVAL, 0);
 
 #ifdef WEB_ENABLE
         create_basic_http_server(&web_conn, 80, web_view);
