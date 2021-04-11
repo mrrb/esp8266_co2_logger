@@ -94,6 +94,21 @@ uc_init_i2c() {
 }
 
 status_t ICACHE_FLASH_ATTR
+uc_init_zmod_test(zmod4xxx_dev_t* zmod_dev, iaq_1st_gen_handle_t* iaq_1st_handle) {
+    int8_t zmod_result;
+
+    zmod_result = init_iaq_1st_gen(iaq_1st_handle, zmod_dev, ZMOD4410_SAMPLE_PERIOD);
+    if (zmod_result) {
+#ifdef DEBUG_PRINT_MODE
+        os_printf("ZMOD4410 [w/ halt] algorithm initializing error [%d]!\n", zmod_result);
+#endif
+        return STA_ERR;
+    }
+
+    return STA_OK;
+}
+
+status_t ICACHE_FLASH_ATTR
 uc_init_sensors(zmod4xxx_dev_t* zmod_dev, iaq_1st_gen_handle_t* iaq_1st_handle, ccs811_dev_t* ccs_dev) {
     int8_t zmod_result;
     uint8_t css_status;

@@ -42,6 +42,7 @@ status_t uc_init_uart();
 status_t uc_init_wifi();
 status_t uc_init_gpio();
 status_t uc_init_i2c();
+status_t uc_init_zmod_test(zmod4xxx_dev_t* zmod_dev, iaq_1st_gen_handle_t* iaq_1st_handle);
 status_t uc_init_sensors(zmod4xxx_dev_t* zmod_dev, iaq_1st_gen_handle_t* iaq_1st_handle, ccs811_dev_t* ccs_dev);
 status_t uc_init_sntp();
 
