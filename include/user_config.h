@@ -32,11 +32,13 @@
 #define CCS_READ_INTERVAL     10101
 #define SERVER_WRITE_INTERVAL 10201
 
-#define ZMOD_TEST_RESET_COUNT 111     /* ZMOD measures before reseting ZMOD variables */
-#define ZMOD_TEST_RESET_DELAY 390000  /* Time delay between measures and ZMOD variables reset */
+// 111  * 6 ≈ 666s  ≈ 11min
+// 1111 * 6 ≈ 6666s ≈ 1111min ≈ 1h 50min
+#define ZMOD_TEST_RESET_COUNT_ON  111   /* ZMOD measures before reseting ZMOD variables */
+#define ZMOD_TEST_RESET_COUNT_OFF 1111  /* Ignored ZMOD measures */
 
-#define ZMOD_TEST_HALT_COUNT  111     /* ZMOD measures before halt */
-#define ZMOD_TEST_HALT_DELAY  390000  /* Halt duration */
+#define ZMOD_TEST_HALT_COUNT_ON   111   /* ZMOD measures before halt */
+#define ZMOD_TEST_HALT_COUNT_OFF  1111  /* Ignored ZMOD measures */
 
 // #define PRINT_ON_MEASURE_ENABLE
 

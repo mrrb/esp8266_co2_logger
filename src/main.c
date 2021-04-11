@@ -42,7 +42,8 @@ static iaq_1st_gen_results_t iaq_results_test_reset;
 static iaq_1st_gen_handle_t  iaq_handle_test_halt;
 static iaq_1st_gen_results_t iaq_results_test_halt;
 
-uint16_t zmod_reset_counter, zmod_halt_counter;
+uint16_t zmod_reset_counter_on, zmod_reset_counter_off;
+uint16_t zmod_halt_counter_on,  zmod_halt_counter_off;
 
 static scd30_result_t scd30_result;
 
@@ -56,8 +57,6 @@ static uint8_t scd30_data_valid;
 static volatile os_timer_t timer_blink;
 static volatile os_timer_t timer_scd30;
 static volatile os_timer_t timer_zmod;
-static volatile os_timer_t timer_zmod_reset;
-static volatile os_timer_t timer_zmod_halt;
 static volatile os_timer_t timer_ccs;
 
 static volatile os_timer_t timer_logger;
@@ -352,20 +351,6 @@ timer_func_scd30(void* args) {
 }
 
 void ICACHE_FLASH_ATTR
-timer_func_zmod_reset_end(void* args) {
-    os_timer_disarm((os_timer_t*)&timer_zmod_reset);
-    memset(&iaq_handle_test_reset, 0, sizeof(iaq_handle_test_reset));
-    uc_init_zmod_test(&zmod_dev, &iaq_handle_test_reset);
-    zmod_reset_counter = 0;
-}
-
-void ICACHE_FLASH_ATTR
-timer_func_zmod_halt_end(void* args) {
-    os_timer_disarm((os_timer_t*)&timer_zmod_halt);
-    zmod_halt_counter = 0;
-}
-
-void ICACHE_FLASH_ATTR
 timer_func_zmod(void* args) {
     sensor_status_t result;
 
@@ -394,10 +379,23 @@ timer_func_zmod(void* args) {
 
     // LP mode with halt and reset
     zmod4410_data_valid_reset = 0;
-    if (zmod_reset_counter == ZMOD_TEST_RESET_COUNT) {
-        os_timer_arm((os_timer_t*)&timer_zmod_reset, ZMOD_TEST_RESET_DELAY, 0);
-        zmod_reset_counter += 1;
-    } else if (zmod_reset_counter < ZMOD_TEST_RESET_COUNT) {
+    if (zmod_reset_counter_on >= ZMOD_TEST_RESET_COUNT_ON) {
+
+        if (zmod_reset_counter_off >= ZMOD_TEST_RESET_COUNT_OFF) {
+            // Reset ZMOD iaq handle
+            memset(&iaq_handle_test_reset, 0, sizeof(iaq_handle_test_reset));
+            uc_init_zmod_test(&zmod_dev, &iaq_handle_test_reset);
+
+            zmod_reset_counter_on = 0;
+            zmod_reset_counter_off = 0;
+        } else {
+            zmod_reset_counter_off += 1;
+#ifdef PRINT_ON_MEASURE_ENABLE
+            os_printf("ZMOD [w/ reset] delay");
+#endif
+        }
+
+    } else {
         result = calc_zmod_result(&zmod_dev, &iaq_handle_test_reset, &iaq_results_test_reset, zmod_adc_result);
 
         if (result == SENSOR_READ_VALID) {
@@ -405,7 +403,7 @@ timer_func_zmod(void* args) {
             os_printf("## iaq_results_test_reset ##\n");
             print_zmod_param_results(&iaq_results_test_reset);
 #endif
-            zmod_reset_counter += 1;
+            zmod_reset_counter_on += 1;
             zmod4410_data_valid_reset = 1;
         } else if (result == SENSOR_ZMOD_STABILIZATION) {
 #ifdef PRINT_ON_MEASURE_ENABLE
@@ -416,18 +414,23 @@ timer_func_zmod(void* args) {
             os_printf("ZMOD [w/ reset] critical error %d\n", result);
 #endif
         }
-    } else {
-#ifdef PRINT_ON_MEASURE_ENABLE
-        os_printf("ZMOD [w/ reset] delay");
-#endif
     }
 
     // LP mode with halt
     zmod4410_data_valid_halt = 0;
-    if (zmod_halt_counter == ZMOD_TEST_HALT_COUNT) {
-        os_timer_arm((os_timer_t*)&timer_zmod_halt, ZMOD_TEST_HALT_DELAY, 0);
-        zmod_halt_counter += 1;
-    } else if (zmod_halt_counter < ZMOD_TEST_HALT_COUNT) {
+    if (zmod_halt_counter_on >= ZMOD_TEST_HALT_COUNT_ON) {
+
+        if (zmod_halt_counter_off >= ZMOD_TEST_HALT_COUNT_OFF) {
+            zmod_halt_counter_on = 0;
+            zmod_halt_counter_off = 0;
+        } else {
+            zmod_halt_counter_off += 1;
+#ifdef PRINT_ON_MEASURE_ENABLE
+            os_printf("ZMOD [w/ halt] delay");
+#endif
+        }
+
+    } else {
         result = calc_zmod_result(&zmod_dev, &iaq_handle_test_halt, &iaq_results_test_halt, zmod_adc_result);
 
         if (result == SENSOR_READ_VALID) {
@@ -435,7 +438,7 @@ timer_func_zmod(void* args) {
             os_printf("## iaq_results_test_halt ##\n");
             print_zmod_param_results(&iaq_results_test_halt);
 #endif
-            zmod_halt_counter += 1;
+            zmod_halt_counter_on += 1;
             zmod4410_data_valid_halt = 1;
         } else if (result == SENSOR_ZMOD_STABILIZATION) {
 #ifdef PRINT_ON_MEASURE_ENABLE
@@ -446,10 +449,6 @@ timer_func_zmod(void* args) {
             os_printf("ZMOD [w/ halt] critical error %d\n", result);
 #endif
         }
-    } else {
-#ifdef PRINT_ON_MEASURE_ENABLE
-        os_printf("ZMOD [w/ halt] delay");
-#endif
     }
 
     os_timer_arm((os_timer_t*)&timer_zmod, ZMOD_READ_INTERVAL, 0);
@@ -515,8 +514,10 @@ user_init() {
 #ifdef DEBUG_PRINT_MODE
         os_printf("Init done!\n");
 #endif
-        zmod_reset_counter = 0;
-        zmod_halt_counter = 0;
+        zmod_reset_counter_on  = 0;
+        zmod_reset_counter_off = 0;
+        zmod_halt_counter_on   = 0;
+        zmod_halt_counter_off  = 0;
         read_zmod(&zmod_dev, &iaq_handle, &iaq_results, zmod_adc_result);
 
         // Timers
@@ -532,10 +533,6 @@ user_init() {
 
         os_timer_setfn((os_timer_t*)&timer_zmod, (os_timer_func_t *)timer_func_zmod, NULL);
         os_timer_arm((os_timer_t*)&timer_zmod, ZMOD_READ_INTERVAL, 0);
-
-        os_timer_setfn((os_timer_t*)&timer_zmod_reset, (os_timer_func_t *)timer_func_zmod_reset_end, NULL);
-
-        os_timer_setfn((os_timer_t*)&timer_zmod_halt, (os_timer_func_t *)timer_func_zmod_halt_end, NULL);
 
         os_timer_setfn((os_timer_t*)&timer_ccs, (os_timer_func_t *)timer_func_ccs, NULL);
         os_timer_arm((os_timer_t*)&timer_ccs, CCS_READ_INTERVAL, 0);
